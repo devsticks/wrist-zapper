@@ -27,7 +27,10 @@
  */
 #include "Wire.h"   
 #include "MPU9250.h"
-#include <SPI.h>
+/*#include <SPI.h>*/
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
 
 // See also MPU-9250 Register Map and Descriptions, Revision 4.0, RM-MPU-9250A-00, Rev. 1.4, 9/9/2013 for registers not listed in 
 // above document; the MPU9250 and MPU9150 are virtually identical but the latter has a different register map
@@ -287,6 +290,24 @@ void myTimerEvent()
   Blynk.virtualWrite(V1, extensionAngle);
 }
 
+// from microsd_test - consider moving to external library
+void appendFile(fs::FS &fs, const char * path, /*const char * */ String message){
+    Serial.printf("Appending to file: %s\n", path);
+
+    File file = fs.open(path, FILE_APPEND);
+    if(!file){
+        Serial.println("Failed to open file for appending");
+        return;
+    }
+    if(file.print(message)){
+        Serial.println("Message appended");
+    } else {
+        Serial.println("Append failed");
+    }
+    file.close();
+}
+
+
 void setup()
 {
   Wire.begin();
@@ -329,6 +350,19 @@ void setup()
   uint8_t d = MPU9250.getMPU9250ID(MPU2);
   Serial.print("MPU9250_2 "); Serial.print("I AM "); Serial.print(d, HEX); Serial.print(" I should be "); Serial.println(0x71, HEX);
   delay(1000);
+
+  //setup SD card
+  if(!SD.begin()){
+      Serial.println("Card Mount Failed");
+      return;
+  }
+  uint8_t cardType = SD.cardType();
+
+  if(cardType == CARD_NONE){
+      Serial.println("No SD card attached");
+      return;
+  }
+  //end SD card setup
 
 if (c == 0x71 && d == 0x71 ) // WHO_AM_I should always be 0x71 for MPU9250, 0x73 for MPU9255 
 {  
@@ -449,7 +483,12 @@ void loop()
       my1 *= magScale1[1];
       mz1 *= magScale1[2]; 
 //    }
-   
+
+// write data to SD card
+    String IMU1String = String(ax1) + "," + String(ay1) + "," + String(az1) + "," + String(gx1) + "," + String(gy1) + "," + String(gz1) + "," + String(mx1) + "," + String(my1) + "," + String(mz1);
+    //const char * IMU1Char = (const char *)IMU1String;
+    appendFile(SD, "/log.txt", IMU1String);
+    
     for(uint8_t i = 0; i < 10; i++) { // iterate a fixed number of times per data read cycle
     Now1 = micros();
     deltat1 = ((Now1 - lastUpdate1)/1000000.0f); // set integration time by time elapsed since last filter update
@@ -470,7 +509,7 @@ void loop()
       intFlag2 = false;     // reset newData flag
       
      MPU9250.readMPU9250Data(MPU2, MPU9250Data2); // INT cleared on any read
-   
+     
     // Now we'll calculate the accleration value into actual g's
      ax2 = (float)MPU9250Data2[0]*aRes - accelBias2[0];  // get actual g value, this depends on scale being set
      ay2 = (float)MPU9250Data2[1]*aRes - accelBias2[1];   
@@ -493,8 +532,13 @@ void loop()
       my2 *= magScale2[1];
       mz2 *= magScale2[2]; 
 //    }
+
+// Turn data into string for CSV
+    String IMU2String = String(ax2) + "," + String(ay2) + "," + String(az2) + "," + String(gx2) + "," + String(gy2) + "," + String(gz2) + "," + String(mx2) + "," + String(my2) + "," + String(mz2);
+// Write data
+    appendFile(SD, "/log.txt", IMU2String + "\n");
+    //end data writing
    
-  
     for(uint8_t i = 0; i < 10; i++) { // iterate a fixed number of times per data read cycle
     Now2 = micros();
     deltat2 = ((Now2 - lastUpdate2)/1000000.0f); // set integration time by time elapsed since last filter update
@@ -506,7 +550,7 @@ void loop()
     MadgwickQuaternionUpdate2(-ax2, +ay2, +az2, gx2*pi/180.0f, -gy2*pi/180.0f, -gz2*pi/180.0f,  my2,  -mx2, mz2);
     
     /* end of MPU9250 2 interrupt handling */
-   }
+    }
   
   // Sensors x (y)-axis of the accelerometer is aligned with the y (x)-axis of the magnetometer;
   // the magnetometer z-axis (+ down) is opposite to z-axis (+ up) of accelerometer and gyro!
@@ -1123,3 +1167,13 @@ void readBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t * des
   while (Wire.available()) {
         dest[i++] = Wire.read(); }         // Put read results in the Rx buffer
 }
+/*
+void writeIMUsToFile (String filename, int16_t IMU1Data[7], int16_t IMU2Data[7])
+{
+  String IMU1String = IMUDataToString(IMU1Data);
+  String IMU2String = IMUDataToString(IMU2Data);
+  appendFile(SD, filename, String(IMU1Data));
+  appendFile(SD, filename, String(IMU2Data));
+  appendFile(SD, filename, "\n");
+}
+*/
