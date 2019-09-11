@@ -485,8 +485,10 @@ void loop()
 //    }
 
 // write data to SD card
+    //String headerString = "ax1,ay1,az1,gx1,gy1,gz1,mx1,my1,mz1,ax2,ay2,az2,gx2,gy2,gz2,mx2,my2,mz2";
     String IMU1String = String(ax1) + "," + String(ay1) + "," + String(az1) + "," + String(gx1) + "," + String(gy1) + "," + String(gz1) + "," + String(mx1) + "," + String(my1) + "," + String(mz1);
     //const char * IMU1Char = (const char *)IMU1String;
+    //appendFile(SD, "/log.txt", headerString + "\n");
     appendFile(SD, "/log.txt", IMU1String);
     
     for(uint8_t i = 0; i < 10; i++) { // iterate a fixed number of times per data read cycle
@@ -536,7 +538,7 @@ void loop()
 // Turn data into string for CSV
     String IMU2String = String(ax2) + "," + String(ay2) + "," + String(az2) + "," + String(gx2) + "," + String(gy2) + "," + String(gz2) + "," + String(mx2) + "," + String(my2) + "," + String(mz2);
 // Write data
-    appendFile(SD, "/log.txt", IMU2String + "\n");
+    appendFile(SD, "/log.txt", "," + IMU2String + "\n");
     //end data writing
    
     for(uint8_t i = 0; i < 10; i++) { // iterate a fixed number of times per data read cycle

@@ -1,0 +1,9 @@
+clc;
+clear;
+% syms g mB mT IB x y thB thT dx dy dthB dthT ddx ddy ddthB ddthT LB LT
+% 
+% q = [x; y; thB; thT];
+% dq = [dx; dy; dthB; dthT];
+% ddq = [ddx; ddy; ddthB; ddthT];
+% mass = [mB mT ];
+% inertia = [IB ];

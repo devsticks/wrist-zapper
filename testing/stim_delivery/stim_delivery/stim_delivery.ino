@@ -9,7 +9,7 @@ void loop()
 {
   for(int i=0;i<100;i+=10){
     int j = toDac(1);
-    dacWrite(25,j);
+    dacWrite(0,j);
     Serial.println(j);
     delay(2000);            
   } 
