@@ -48,7 +48,7 @@ for i=1:size(down2,1)
 end
 
 eul2 = rad2deg(quat2eul(quat2));
-plot(eul2)
+
 %%
 dT = 1/25;
 w1 = [0 0 0];

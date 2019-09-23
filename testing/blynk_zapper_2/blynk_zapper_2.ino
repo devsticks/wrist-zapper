@@ -490,6 +490,7 @@ void loop()
     //const char * IMU1Char = (const char *)IMU1String;
     //appendFile(SD, "/log.txt", headerString + "\n");
     appendFile(SD, "/log.txt", IMU1String);
+//end write to SD
     
     for(uint8_t i = 0; i < 10; i++) { // iterate a fixed number of times per data read cycle
     Now1 = micros();
