@@ -1,5 +1,5 @@
-q1pre = table2array(qlog2(:,1:4));
-q2pre = table2array(qlog2(:,5:8));
+q1pre = table2array(qlog3(:,1:4));
+q2pre = table2array(qlog3(:,5:8));
 
 q1 = [quaternion()];
 q2 = [quaternion()];
@@ -13,7 +13,7 @@ end
 %% calibrate so all in line at start
 
 % ---- Find calibration rotation matrix ---- %
-hand_start_offset = q1(100) * conj(q2(100)); % undo q2 to get hand aligned with inertial, then by rotate by q1 to align with arm
+hand_start_offset = q1(1) * conj(q2(10)); % undo q2 to get hand aligned with inertial, then by rotate by q1 to align with arm
 
 %% do angle calculation
 
@@ -66,8 +66,6 @@ function ext_angle = calcExtensionAngle(q1,q2)
     z_hand_n = z_hand/norm(z_hand);                                             %normalised orientation vector of hand
 
     % find normal of IMU1 plane
-    v1 = x_arm_n;
-    v2 = z_arm_n;
     n_vec = y_arm_n; % cross(v1,v2); %y_arm
 
     % find normal of hand extension plane
@@ -78,5 +76,12 @@ function ext_angle = calcExtensionAngle(q1,q2)
     v_intersection = cross(n_vec,n_vec2);                                       % find vector of intersection of planes
     v_intersection_n = v_intersection/norm(v_intersection);                     % normalise
 
-    ext_angle = acos(dot(x_arm_n, v_intersection_n))*360/(2*pi);                    %find angle
+    cross_prod = cross(x_arm_n, v_intersection_n);
+    if (dot(y_arm_n, cross_prod) > 0) 
+        sign = -1;
+    else
+        sign = 1;
+    end
+    
+    ext_angle = sign * acos(dot(x_arm_n, v_intersection_n))*360/(2*pi);                    %find angle
 end

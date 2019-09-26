@@ -3,7 +3,7 @@ q2pre = table2array(qlog2(:,5:8));
 
 q1 = [quaternion()];
 q2 = [quaternion()];
-for j = 1:size(q1pre,1)
+for j = 624:size(q1pre,1)
     if q1pre(j,:) ~= q2pre(j,:)
         q1 = [q1; quaternion(q1pre(j,:))];
         q2 = [q2; quaternion(q2pre(j,:))];
@@ -20,7 +20,7 @@ hand_start_offset = q1(100) * conj(q2(100)); % undo q2 to get hand aligned with 
 %% do angle calculation
 
 angles = [];
-for i = 100:size(q1,1) - 50
+for i = 1:size(q1,1) - 50
 
     % ---- Get arm orientations ---- %
     % Arm is IMU 1 (currently 0x68, with ADO low)
@@ -74,6 +74,15 @@ for i = 100:size(q1,1) - 50
 
     proj_angle = acos(dot(x_arm_n, v_intersection_n))*360/(2*pi);                    %find angle
 %     fprintf('Angle between arm and hand in plane of hand: %4.2f\260 \n', proj_angle)
+
+    cross_prod = cross(x_arm_n, v_intersection_n);
+    if (dot(y_arm_n, cross_prod) > 0) 
+        sign = -1;
+    else
+        sign = 1;
+    end
+    
+    proj_angle = sign * proj_angle;
 
     angles = [angles proj_angle];
 end
