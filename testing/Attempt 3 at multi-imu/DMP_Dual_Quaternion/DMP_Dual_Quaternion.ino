@@ -53,16 +53,16 @@ void setup()
   SerialPort.begin(115200);
 
   // Call imu.begin() to verify communication and initialize
-  if (imu1.begin(0x69) != INV_SUCCESS)
-  {
-    while (1)
-    {
-      SerialPort.println("Unable to communicate with MPU-9250 1");
-      SerialPort.println("Check connections, and try again.");
-      SerialPort.println();
-      delay(5000);
-    }
-  }
+//  if (imu1.begin(0x69) != INV_SUCCESS)
+//  {
+//    while (1)
+//    {
+//      SerialPort.println("Unable to communicate with MPU-9250 1");
+//      SerialPort.println("Check connections, and try again.");
+//      SerialPort.println();
+//      delay(5000);
+//    }
+//  }
 
   if (imu2.begin(0x68) != INV_SUCCESS)
   {
@@ -75,25 +75,33 @@ void setup()
     }
   }
 
-  Serial.println("1 " + String(imu1.getAddr()) + ", 2 " + String(imu2.getAddr()));
-  
-  if (imu2.dmpBegin(DMP_FEATURE_6X_LP_QUAT | // Enable 6-axis quat
-               DMP_FEATURE_GYRO_CAL, // Use gyro calibration
-              20) != INV_SUCCESS) // Set DMP FIFO rate to 10 Hz
-  // DMP_FEATURE_LP_QUAT can also be used. It uses the 
-  // accelerometer in low-power mode to estimate quat's.
-  // DMP_FEATURE_LP_QUAT and 6X_LP_QUAT are mutually exclusive
-  {
-    while (1)
-    {
-      SerialPort.println("Unable to start DMP on MPU-9250 1");
-      SerialPort.println("Check connections, and try again.");
-      SerialPort.println();
-      delay(5000);
-    }
-  }
+//  if (imu1.selfTest() != INV_SUCCESS) {
+//    Serial.println("Self test failed");
+//  }
 
-  if (imu1.dmpBegin(DMP_FEATURE_6X_LP_QUAT | // Enable 6-axis quat
+  if (imu2.selfTest() != INV_SUCCESS) {
+    Serial.println("Self test failed");
+  }
+//
+//  Serial.println("1 " + String(imu1.getAddr()) + ", 2 " + String(imu2.getAddr()));
+//  
+//  if (imu1.dmpBegin(DMP_FEATURE_6X_LP_QUAT | // Enable 6-axis quat
+//               DMP_FEATURE_GYRO_CAL, // Use gyro calibration
+//              20) != INV_SUCCESS) // Set DMP FIFO rate to 10 Hz
+//  // DMP_FEATURE_LP_QUAT can also be used. It uses the 
+//  // accelerometer in low-power mode to estimate quat's.
+//  // DMP_FEATURE_LP_QUAT and 6X_LP_QUAT are mutually exclusive
+//  {
+//    while (1)
+//    {
+//      SerialPort.println("Unable to start DMP on MPU-9250 1");
+//      SerialPort.println("Check connections, and try again.");
+//      SerialPort.println();
+//      delay(5000);
+//    }
+//  }
+//
+  if (imu2.dmpBegin(DMP_FEATURE_6X_LP_QUAT | // Enable 6-axis quat
                DMP_FEATURE_GYRO_CAL, // Use gyro calibration
               20)  != INV_SUCCESS) // Set DMP FIFO rate to 10 Hz
   {
@@ -123,7 +131,7 @@ void loop()
 //    if (imu1.dmpUpdateFifo() == INV_SUCCESS | imu2.dmpUpdateFifo() == INV_SUCCESS)
 //    {
       // computeEulerAngles can be used -- after updating the
-      // quaternion values -- to estimate roll, pitch, and yaw
+      // qua ternion values -- to estimate roll, pitch, and yaw
       //imu.computeEulerAngles();
       printIMUData();
       //saveToSD();
@@ -241,7 +249,7 @@ void printIMUData(void)
     
 //    String imustring = String(q_arm.a) + "," + String(q_arm.b) + "," + String(q_arm.c) + "," + String(q_arm.d) + "," + String(q_hand.a) + "," + String(q_hand.b) + "," + String(q_hand.c) + "," + String(q_hand.d) + "\n";
     
-//    appendFile(SD, "/qlog.txt", imustring);
+//    appendFile(SD, "/zlog.txt", imustring);
 //    appendFile(SD, "/alog.txt", String(extensionAngle) + "\n");
     
 //    SerialPort.println(String(q_arm.a) + "," + String(q_arm.b) + "," + String(q_arm.c) + "," + String(q_arm.d) + "," + String(q_hand.a) + "," + String(q_hand.b) + "," + String(q_hand.c) + "," + String(q_hand.d) );
