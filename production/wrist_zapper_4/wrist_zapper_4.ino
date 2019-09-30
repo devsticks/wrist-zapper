@@ -123,7 +123,6 @@ void loop() {
         fifoCount1 = imu1.getFIFOCount();
         fifoCount2 = imu2.getFIFOCount();
         Serial.println(F("FIFO overflow!"));
-
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else if (mpu1IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT)) {
         // wait for correct available data length, should be a VERY short wait
@@ -131,12 +130,10 @@ void loop() {
 
         // read a packet from FIFO
         imu1.getFIFOBytes(fifoBuffer1, packet1Size);
-        imu2.getFIFOBytes(fifoBuffer2, packet2Size);
         
         // track FIFO count here in case there is > 1 packet available
         // (this lets us immediately read more without waiting for an interrupt)
         fifoCount1 -= packet1Size;
-        fifoCount2 -= packet2Size;
         
         // display quaternion values in easy matrix form: w x y z
         imu1.dmpGetQuaternion(&q_arm, fifoBuffer1);
@@ -148,6 +145,11 @@ void loop() {
 //        Serial.print(q_arm.y);
 //        Serial.print("\t");
 //        Serial.println(q_arm.z);
+
+        while (fifoCount2 < packet2Size) fifoCount2 = imu2.getFIFOCount();
+        
+        imu2.getFIFOBytes(fifoBuffer2, packet2Size);
+        fifoCount2 -= packet2Size;
 
         imu2.dmpGetQuaternion(&q_hand, fifoBuffer2);
 //        Serial.print("quat2\t");

@@ -29,17 +29,17 @@ uint8_t setupIMU(MPU6050 imu, uint8_t &mpuIntStatus, bool &dmpReady, uint16_t &p
     devStatus = imu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
-    imu.setXGyroOffset(51);
-    imu.setYGyroOffset(8);
-    imu.setZGyroOffset(21);
-    imu.setXAccelOffset(1150); 
-    imu.setYAccelOffset(-50); 
-    imu.setZAccelOffset(1060); 
+//    imu.setXGyroOffset(51);
+//    imu.setYGyroOffset(8);
+//    imu.setZGyroOffset(21);
+//    imu.setXAccelOffset(1150); 
+//    imu.setYAccelOffset(-50); 
+//    imu.setZAccelOffset(1060); 
     
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
         // Calibration Time: generate offsets and calibrate our MPU6050
-        imu.CalibrateAccel(6);
+//        imu.CalibrateAccel(6);
         imu.CalibrateGyro(6);
         Serial.println();
         imu.PrintActiveOffsets();
@@ -47,6 +47,7 @@ uint8_t setupIMU(MPU6050 imu, uint8_t &mpuIntStatus, bool &dmpReady, uint16_t &p
         Serial.println(F("Enabling DMP..."));
         imu.setDMPEnabled(true);
 
+        Serial.println(String(imu.getXGyroOffset()));
         mpuIntStatus = imu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
