@@ -20,9 +20,12 @@
 
 using namespace BLA;                                // BasicLinearAlgebra namespace
 
-#define INTERRUPT_PIN1 32  
-#define INTERRUPT_PIN2 14
-#define LED_PIN 13 
+#define INTERRUPT_PIN1 50  
+#define INTERRUPT_PIN2 50
+#define INTERNAL_LED_PIN 13 
+#define EXTERNAL_RED_LED_PIN 15
+#define EXTERNAL_GREEN_LED_PIN 14
+#define BATTERY_TEST_PIN 32
 
 //// -- GLOBAL VARIABLES -- ////
 
@@ -30,7 +33,9 @@ using namespace BLA;                                // BasicLinearAlgebra namesp
 // AD0 high = 0x69 (arm IMU)
 MPU6050 imu1(0x69), imu2(0x68);
 
-bool blinkState = false;
+bool internalLEDState = false;
+bool externalRedLEDState = false;
+bool externalGreenLEDState = false;
 
 // MPU control/status vars
 bool dmp1Ready = false, dmp2Ready = false;          // flag set true if DMP init was successful
@@ -73,7 +78,9 @@ void setup() {
     setupSD();
 
     if (devStatus != 0 || !dmp1Ready || ! dmp2Ready) { /* startupFailed() TODO turn a red light on or something to show there's a problem */ }
-    
+
+    toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);
+    toggleLED(externalGreenLEDState, EXTERNAL_GREEN_LED_PIN);
 }
 
 void loop() {
@@ -89,23 +96,23 @@ void loop() {
 //    updateShock(extensionAngle, 30, 30, 0, 2);
 //  }
 
-    // wait for MPU interrupt or extra packet(s) available
-    while (!mpu1Interrupt && fifoCount1 < packet1Size) {
-        if (mpu1Interrupt && fifoCount1 < packet1Size) {
-          // try to get out of the infinite loop 
-          fifoCount1 = imu1.getFIFOCount();
-        }  
-        // other program behavior stuff here
-        // .
-        // .
-        // .
-        // if you are really paranoid you can frequently test in between other
-        // stuff to see if mpuInterrupt is true, and if so, "break;" from the
-        // while() loop to immediately process the MPU data
-        // .
-        // .
-        // .
-    }
+//    // wait for MPU interrupt or extra packet(s) available
+//    while (!mpu1Interrupt && fifoCount1 < packet1Size) {
+//        if (mpu1Interrupt && fifoCount1 < packet1Size) {
+//          // try to get out of the infinite loop 
+//          fifoCount1 = imu1.getFIFOCount();
+//        }  
+//        // other program behavior stuff here
+//        // .
+//        // .
+//        // .
+//        // if you are really paranoid you can frequently test in between other
+//        // stuff to see if mpuInterrupt is true, and if so, "break;" from the
+//        // while() loop to immediately process the MPU data
+//        // .
+//        // .
+//        // .
+//    }
 
     // reset interrupt flag and get INT_STATUS byte
     mpu1Interrupt = false;
@@ -164,9 +171,8 @@ void loop() {
         float extensionAngle = calcExtensionAngle(q_arm, q_hand);
         Serial.println(String(extensionAngle));
         updateShock(extensionAngle, 30, 30, 0, 100);
-
-        // blink LED to indicate activity
-        blinkState = !blinkState;
-        digitalWrite(LED_PIN, blinkState);
+        Serial.println(String(getBatteryVoltage()));
+        // blink internal LED to indicate activity
+        toggleLED(internalLEDState, INTERNAL_LED_PIN);
     }
 }

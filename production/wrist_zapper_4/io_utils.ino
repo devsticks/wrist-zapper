@@ -14,8 +14,13 @@ void setupGPIO(void)
     pinMode(INTERRUPT_PIN2, INPUT);
     pinMode(INTERRUPT_PIN2, INPUT_PULLUP);
 
-    // configure LED for output
-    pinMode(LED_PIN, OUTPUT);
+    // configure LEDs for output
+    pinMode(INTERNAL_LED_PIN, OUTPUT);
+    pinMode(EXTERNAL_RED_LED_PIN, OUTPUT);
+    pinMode(EXTERNAL_GREEN_LED_PIN, OUTPUT);    
+
+//    // configure battery measurement pin for analog input
+//    pinMode(BATTERY_TEST_PIN, 
 
     // enable Arduino interrupt detection
     Serial.print(digitalPinToInterrupt(INTERRUPT_PIN1));
@@ -129,4 +134,23 @@ void updateShock(float extensionAngle, int stimRangeStart, int stimRange, float 
       dacWrite(25,0);
       Serial.println("Shock off");
   }
+}
+
+/* 
+ *  Toggle the state of an LED pin given it's state variable and pin number
+ */
+
+ void toggleLED(bool &ledState, int pin) 
+ {
+    ledState = !ledState;
+    digitalWrite(pin, ledState);
  }
+
+uint32_t getBatteryVoltage() 
+{
+//    float ADCVal = analogRead(BATTERY_TEST_PIN);
+//    return ADCVal * 3.3 / 4095;
+
+//    uint32_t reading =  adc1_get_raw(ADC1_CHANNEL_7);
+//    uint32_t voltage = esp_adc_cal_raw_to_voltage(reading, adc_chars);
+}
