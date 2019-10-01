@@ -163,7 +163,7 @@ void loop() {
 
         float extensionAngle = calcExtensionAngle(q_arm, q_hand);
         Serial.println(String(extensionAngle));
-        updateShock(extensionAngle, 30, 30, 0, 2);
+        updateShock(extensionAngle, 30, 30, 0, 100);
 
         // blink LED to indicate activity
         blinkState = !blinkState;

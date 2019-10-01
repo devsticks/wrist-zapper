@@ -2,14 +2,14 @@
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
  
 void loop()
 {
   for(int i=0;i<100;i+=10){
-    int j = toDac(1);
-    dacWrite(0,j);
+    int j = toDac(100);
+    dacWrite(25,j);
     Serial.println(j);
     delay(2000);            
   } 

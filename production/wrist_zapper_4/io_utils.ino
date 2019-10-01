@@ -121,12 +121,12 @@ void updateShock(float extensionAngle, int stimRangeStart, int stimRange, float 
     float intensity = stimIntensityStart + (extensionAngle - stimRangeStart)/(stimRange / stimIntensityRange);
 //      for(int i=0;i<100;i+=10) {
     int j = toDac(intensity);
-    dacWrite(0,j);
+    dacWrite(25,j);
     Serial.println("Shocking at " + String(intensity) + "%!");
 //        delay(2000);            
 //      } 
   } else {
-      dacWrite(0,0);
+      dacWrite(25,0);
       Serial.println("Shock off");
   }
  }
