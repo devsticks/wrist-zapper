@@ -1,36 +1,35 @@
 /* 
- *  A set of utility functions for GPIO and interfacing with an SD card
+ *  @ description: A set of utility functions for GPIO and interfacing with an SD card
+ *  @ author: Devin Stickells, https://github.com/devsticks
+ *  @ required: 
  */
 
 /*
- *  Set pin states and prepare interrupt routines
+ *  Set pin states
  */
 void setupGPIO(void)
 {
-    Serial.print(F("Enabling interrupt detection (Arduino external interrupt "));
-    pinMode(INTERRUPT_PIN1, INPUT);
-    pinMode(INTERRUPT_PIN1, INPUT_PULLUP);
-
-    pinMode(INTERRUPT_PIN2, INPUT);
-    pinMode(INTERRUPT_PIN2, INPUT_PULLUP);
-
-    // configure LEDs for output
+    Wire.begin(SDA_PIN, SCL_PIN);                     // start I2C interface with Wire library                  
+  
+    // configure LED pins for output
     pinMode(INTERNAL_LED_PIN, OUTPUT);
     pinMode(EXTERNAL_RED_LED_PIN, OUTPUT);
     pinMode(EXTERNAL_GREEN_LED_PIN, OUTPUT);    
 
-//    // configure battery measurement pin for analog input
-//    pinMode(BATTERY_TEST_PIN, 
+    // configure stim pin for PWM - (pin number, PWM channel)
+//    ledcAttachPin(STIM_PIN, 0);
 
-    // enable Arduino interrupt detection
-    Serial.print(digitalPinToInterrupt(INTERRUPT_PIN1));
-    Serial.println(F(")..."));
-    attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN1), dmp1DataReady, RISING);
+// TODO check if this is actually needed (from i2cdevlib)
+    // join I2C bus (I2Cdev library doesn't do this automatically)
+    #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+        Wire.begin(SDA_PIN, SCL_PIN);
+        Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
+    #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
+        Fastwire::setup(400, true);
+    #endif
 
-    Serial.print(digitalPinToInterrupt(INTERRUPT_PIN2));
-    Serial.println(F(")..."));
-    attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN2), dmp2DataReady, RISING);
-}
+    sdLED.on();
+}  
 
 /* 
  *  Mount the card
@@ -55,22 +54,22 @@ void setupSD(void)
  *  - path: the absolute path to the file to write to
  *  - message: the string to be appended
  */
-void appendFile(fs::FS &fs, const char * path, /*const char * */ String message)
-{
-    Serial.printf("Appending to file: %s\n", path);
-
-    File file = fs.open(path, FILE_APPEND);
-    if(!file){
-        Serial.println("Failed to open file for appending");
-        return;
-    }
-    if(file.print(message)){
-        Serial.println("Message appended");
-    } else {
-        Serial.println("Append failed");
-    }
-    file.close();
-}
+//void appendFile(fs::FS &fs, const char * path, /*const char * */ String message)
+//{
+//    Serial.printf("Appending to file: %s\n", path);
+//
+//    File file = fs.open(path, FILE_APPEND);
+//    if(!file){
+//        Serial.println("Failed to open file for appending");
+//        return;
+//    }
+//    if(file.print(message)){
+//        Serial.println("Message appended");
+//    } else {
+//        Serial.println("Append failed");
+//    }
+//    file.close();
+//}
 
 void saveToSD(void)
 {
@@ -107,50 +106,102 @@ int toDac(int percentage)
 /*
  * 
  *  Params:
- *  - int stimRangeStart = 30; // start stimulus at this point
- *  - int stimRange = 30; // range over which intensity varies
- *  - float stimIntensityStart = 0; // percentage intensity at stimRangeStart
- *  - float stimIntensityRange = 2; // increase in percentage intensity from stimRangeStart to end of stimRange
+ *  - int shockStartAngle = 30; // start stimulus at this point
+ *  - int shockAngleRange = 30; // range over which intensity varies
+ *  - float shockStartIntensity = 0; // percentage intensity at shockStartAngle
+ *  - float shockIntensityRange = 2; // increase in percentage intensity from shockStartAngle to end of shockAngleRange
  */
-void updateShock(float extensionAngle, int stimRangeStart, int stimRange, float stimIntensityStart, float stimIntensityRange)
+void updateShock(float extensionAngle)
 {
-  if (extensionAngle > stimRangeStart + stimRange) // max intensity
+
+  int shockAngleRange = shockMaxAngle - shockStartAngle;
+  int shockIntensityRange = shockMaxIntensity - shockStartIntensity;
+  float intensity = 0;
+  
+  if (extensionAngle > shockStartAngle + shockAngleRange) // max intensity
   { 
-    float intensity = stimIntensityStart + stimIntensityRange;
+    intensity = shockStartIntensity + shockIntensityRange;
     int j = toDac(intensity);
     dacWrite(0,j);
     Serial.println("Shocking at max intensity, " + String(intensity) + "%!");
   } 
-  else if (extensionAngle > stimRangeStart) 
+  else if (extensionAngle > shockStartAngle) 
   {
-    float intensity = stimIntensityStart + (extensionAngle - stimRangeStart)/(stimRange / stimIntensityRange);
+    intensity = shockStartIntensity + (extensionAngle - shockStartAngle)/(shockAngleRange / shockIntensityRange);
 //      for(int i=0;i<100;i+=10) {
     int j = toDac(intensity);
-    dacWrite(25,j);
+//    int j = intensity * 8192 * 0.01;
+
+//    ledcWrite(STIM_PIN, j);
+
+    dacWrite(STIM_PIN,j);
     Serial.println("Shocking at " + String(intensity) + "%!");
 //        delay(2000);            
 //      } 
   } else {
-      dacWrite(25,0);
+//      ledcWrite(STIM_PIN,0);
+      intensity = 0;
+      dacWrite(STIM_PIN,0);
       Serial.println("Shock off");
   }
+
+  shockPercentage = intensity;
 }
 
 /* 
  *  Toggle the state of an LED pin given it's state variable and pin number
  */
 
- void toggleLED(bool &ledState, int pin) 
- {
-    ledState = !ledState;
-    digitalWrite(pin, ledState);
- }
-
-uint32_t getBatteryVoltage() 
+void toggleLED(bool &ledState, int pin) 
 {
-//    float ADCVal = analogRead(BATTERY_TEST_PIN);
-//    return ADCVal * 3.3 / 4095;
+  ledState = !ledState;
+  digitalWrite(pin, ledState);
+}
 
-//    uint32_t reading =  adc1_get_raw(ADC1_CHANNEL_7);
-//    uint32_t voltage = esp_adc_cal_raw_to_voltage(reading, adc_chars);
+/* 
+ *  getBatteryVoltage
+ *  
+ *  Get the ADC reading from the pin attached to the battery voltage divider
+ *  ADC reads 0-4095
+ *  Max voltage is 3.3V
+ */
+float getBatteryVoltage() 
+{
+  float ADCVal = analogRead(BATTERY_TEST_PIN);
+  return ADCVal * 3.3 / 4095;
+}
+
+float getBatteryPercentage()
+{
+  return 100 * (getBatteryVoltage() / 3.3); // TODO get the actual battery percentage...
+}
+
+/*
+ *  lcdPrint
+ *  
+ *  @ description: writes a line to the Blynk app lcd screen
+ *  @ params: 
+ *  - line - zero-indexed line number, 0 or 1
+ *  - message - a string to be written; will be truncated at 16 characters 
+ */
+void lcdPrint(char line, String message)
+{
+  while (message.length() <= 16) {
+    message += " ";
+  }
+  lcd.print(0, line, message);
+}
+
+BLYNK_CONNECTED() 
+{
+  Blynk.syncVirtual(BLYNK_START_CALIB_PIN);
+}
+
+BLYNK_WRITE(BLYNK_START_CALIB_PIN) 
+{
+  toggleLED(externalGreenLEDState, EXTERNAL_GREEN_LED_PIN);
+  calibLED.on();
+  Serial.println("Calibration requested");
+  calibrate();
+  calibLED.off();
 }

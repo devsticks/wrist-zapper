@@ -101,14 +101,15 @@ void printIMUData(MPU6050 &imu1, MPU6050 &imu2)
     float stimIntensityStart = 0; // percentage intensity at stimRangeStart
     float stimIntensityRange = 2; // increase in percentage intensity from stimRangeStart to end of stimRange
 
-    if (extensionAngle > stimRangeStart + stimRange) // max intensity
+    // don't want the wearer getting inadvertantly shocked mid-calibration
+    if (calibrated && (extensionAngle > stimRangeStart + stimRange)) // max intensity
     { 
       float intensity = stimIntensityStart + stimIntensityRange;
       int j = toDac(intensity);
       dacWrite(0,j);
       Serial.println("Shocking at max intensity, " + String(intensity) + "%!");
     } 
-    else if (extensionAngle > stimRangeStart) 
+    else if (calibrated && (extensionAngle > stimRangeStart)) 
     {
       float intensity = stimIntensityStart + (extensionAngle - stimRangeStart)/(stimRange / stimIntensityRange);
 //      for(int i=0;i<100;i+=10) {
@@ -136,4 +137,54 @@ void printIMUData(MPU6050 &imu1, MPU6050 &imu2)
 //            + String(imu.pitch) + ", " + String(imu.yaw));
 //  SerialPort.println("Time: " + String(imu.time) + " ms");
 //  SerialPort.println();
+}
+
+void calibrate() 
+{
+  calibrated = false;
+  calibrating = true;
+
+  lcdPrint(0, "Place hand flat,");
+  lcdPrint(1, "elbow on table.");
+  Blynk.setProperty(BLYNK_START_CALIB_PIN, "offLabel", "Running");
+  
+
+  while (abs(calcExtensionAngle(q_arm, q_hand)) > 10)  { // hand isn't actually flat
+    // update angle
+      while (fifoCount1 < packet1Size) fifoCount1 = imu1.getFIFOCount();
+
+      // read a packet from FIFO
+      imu1.getFIFOBytes(fifoBuffer1, packet1Size);
+      
+      // track FIFO count here in case there is > 1 packet available
+      // (this lets us immediately read more without waiting for an interrupt)
+      fifoCount1 -= packet1Size;
+      
+      // display quaternion values in easy matrix form: w x y z
+      imu1.dmpGetQuaternion(&q_arm, fifoBuffer1);
+
+      while (fifoCount2 < packet2Size) fifoCount2 = imu2.getFIFOCount();
+      
+      imu2.getFIFOBytes(fifoBuffer2, packet2Size);
+      fifoCount2 -= packet2Size;
+
+      imu2.dmpGetQuaternion(&q_hand, fifoBuffer2);
+
+      digitalWrite(EXTERNAL_RED_LED_PIN, 1);                              // turn on red LED to say we're not happy
+      Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#D3435C");         // change Blynk app's calibrating indicator LED to red
+  }
+
+  // TODO some more thorough calibration vibe....
+        
+  digitalWrite(EXTERNAL_RED_LED_PIN, 0);                                  // turn off red LED cause we're happy now
+  Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#43D35C");             // change Blynk app's calibrating indicator LED to green
+  digitalWrite(EXTERNAL_GREEN_LED_PIN, 1);                                // turn on green LED
+
+//  q_calib = q_arm * conj(q_hand);                                         // calculate rotation of hand frame to arm frame
+
+  lcdPrint(0, "Calibration done!");
+  lcdPrint(1, " ");
+  Blynk.setProperty(BLYNK_START_CALIB_PIN, "offLabel", "Start");
+
+  calibrating = false;
 }
