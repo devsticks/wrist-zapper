@@ -194,14 +194,36 @@ void lcdPrint(char line, String message)
 
 BLYNK_CONNECTED() 
 {
-  Blynk.syncVirtual(BLYNK_START_CALIB_PIN);
+  Blynk.virtualWrite(BLYNK_SHOCK_START_ANGLE_PIN, shockStartAngle);
+  Blynk.virtualWrite(BLYNK_SHOCK_MAX_ANGLE_PIN, shockMaxAngle);
+  Blynk.virtualWrite(BLYNK_SHOCK_START_INTENSITY_PIN, shockStartIntensity);
+  Blynk.virtualWrite(BLYNK_SHOCK_MAX_INTENSITY_PIN, shockMaxIntensity);
 }
 
 BLYNK_WRITE(BLYNK_START_CALIB_PIN) 
 {
-  toggleLED(externalGreenLEDState, EXTERNAL_GREEN_LED_PIN);
   calibLED.on();
   Serial.println("Calibration requested");
   calibrate();
   calibLED.off();
+}
+
+BLYNK_WRITE(BLYNK_SHOCK_START_ANGLE_PIN) 
+{
+  shockStartAngle = param.asInt();
+}
+
+BLYNK_WRITE(BLYNK_SHOCK_MAX_ANGLE_PIN) 
+{
+  shockMaxAngle = param.asInt();
+}
+
+BLYNK_WRITE(BLYNK_SHOCK_START_INTENSITY_PIN) 
+{
+  shockStartIntensity = param.asInt();
+}
+
+BLYNK_WRITE(BLYNK_SHOCK_MAX_INTENSITY_PIN) 
+{
+  shockMaxIntensity = param.asInt();
 }

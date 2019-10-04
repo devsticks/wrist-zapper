@@ -151,6 +151,7 @@ void calibrate()
 
   while (abs(calcExtensionAngle(q_arm, q_hand)) > 10)  { // hand isn't actually flat
     // update angle
+    
       while (fifoCount1 < packet1Size) fifoCount1 = imu1.getFIFOCount();
 
       // read a packet from FIFO
@@ -170,6 +171,7 @@ void calibrate()
 
       imu2.dmpGetQuaternion(&q_hand, fifoBuffer2);
 
+      Serial.println("Hand isn't in calibration range");
       digitalWrite(EXTERNAL_RED_LED_PIN, 1);                              // turn on red LED to say we're not happy
       Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#D3435C");         // change Blynk app's calibrating indicator LED to red
   }
@@ -184,6 +186,7 @@ void calibrate()
 
   lcdPrint(0, "Calibration done!");
   lcdPrint(1, " ");
+  delay(4000);
   Blynk.setProperty(BLYNK_START_CALIB_PIN, "offLabel", "Start");
 
   calibrating = false;

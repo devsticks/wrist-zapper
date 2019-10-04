@@ -44,6 +44,10 @@ using namespace BLA;                                // BasicLinearAlgebra namesp
 #define BLYNK_EXT_ANGLE_IMG_PIN V5
 #define BLYNK_START_CALIB_PIN V6
 #define BLYNK_CALIB_LED_PIN V7
+#define BLYNK_SHOCK_START_ANGLE_PIN V8
+#define BLYNK_SHOCK_MAX_ANGLE_PIN V9
+#define BLYNK_SHOCK_START_INTENSITY_PIN V10
+#define BLYNK_SHOCK_MAX_INTENSITY_PIN V11
 
 #define BLYNK_USE_DIRECT_CONNECT
 /* Comment this out to disable Blynk prints and save space */
@@ -74,7 +78,7 @@ char shockStartAngle = 30, shockMaxAngle = 60;      // wrist angle range in whic
 char shockStartIntensity = 0, shockMaxIntensity = 10; // variation in shock intensity over critical range - corresponding to start and max angles
 bool calibrating = false;
 bool calibrated = false;
-bool sdStatus = false;
+bool sdStatus = true;
 
 // orientation / motion vars
 Quaternion q_arm, q_hand, q_calib;                  // [w, x, y, z] quaternion containers for arm, hand IMUs, and calibration between them
@@ -300,8 +304,8 @@ void loop() {
 //        Serial.print("\t");
 //        Serial.println(q_hand.z);
 
+//        calibrated_hand = q_calib * q_hand; //rotate back by calibration amount
         Quaternion calibrated_hand = q_hand;
-//        calibrated_hand operator*= q_hand; //rotate back by calibration amount
         extensionAngle = calcExtensionAngle(q_arm, calibrated_hand); 
         appendFile(SD, "/angle_log.txt", String(extensionAngle));
         Serial.println(String(extensionAngle));

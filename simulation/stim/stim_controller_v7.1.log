@@ -1,0 +1,21 @@
+Circuit: * /Volumes/GoogleDrive/My Drive/D/Documents/2019/EEE4022S/wrist-zapper/simulation/stim/stim_controller_v7.1.asc
+
+Direct Newton iteration for .op point succeeded.
+
+Date: Tue Oct  1 18:59:20 2019
+Total elapsed time: 0.902 seconds.
+
+tnom = 27
+temp = 27
+method = modified trap
+totiter = 2109
+traniter = 2096
+tranpoints = 1042
+accept = 1042
+rejected = 0
+matrix size = 30
+fillins = 10
+solver = Normal
+Matrix Compiler1: 2788 object code size  0.6/0.3/[0.2]
+Matrix Compiler2: off
+
