@@ -120,11 +120,11 @@ void slowTimerEvent()
 {
     slowTicToc != slowTicToc;
 
-    if (getBatteryVoltage() > 3) 
+    if (getBatteryVoltage() > 10.5) // above 3.5V per cell
     {
       lcdPrint(0, "Angle: " + String(extensionAngle));
       lcdPrint(1, "Shock at: " + String(shockPercentage) + "%");
-    } else {  // battery is dead, panic
+    } else {  // battery is dead (less than 3.5V per cell, panic)
       lcdPrint(0, "Battery depleted");
       lcdPrint(1, "Replace now");
     }
@@ -174,7 +174,7 @@ void setup()
 
 void appendFile(fs::FS &fs, const char * path, /*const char * */ String message)
 {
-    Serial.printf("Appending to file: %s\n", path);
+//    Serial.printf("Appending to file: %s\n", path);
     bool flag = true;                                                   // assume all is well
 
     File file = fs.open(path, FILE_APPEND);
@@ -182,7 +182,7 @@ void appendFile(fs::FS &fs, const char * path, /*const char * */ String message)
         Serial.println("Failed to open file for appending");
         flag = false;                                                   // all is actually not well
     } else if (file.print(message)) {
-        Serial.println("Message appended");
+        Serial.printf("Message appended to file: %s\n", path);
     } else {
         Serial.println("Append failed");
         flag = false;                                                   // all definitely isn't well
@@ -308,10 +308,12 @@ void loop() {
         Quaternion calibrated_hand = q_hand;
         extensionAngle = calcExtensionAngle(q_arm, calibrated_hand); 
         appendFile(SD, "/angle_log.txt", String(extensionAngle));
+        
         Serial.println(String(extensionAngle));
         updateShock(extensionAngle);
         
-        Serial.println(String(getBatteryPercentage()));
+//        Serial.println(String(getBatteryPercentage()));
+
         // blink internal LED to indicate activity
         toggleLED(internalLEDState, INTERNAL_LED_PIN);
     }

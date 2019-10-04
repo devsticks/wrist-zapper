@@ -162,18 +162,20 @@ void toggleLED(bool &ledState, int pin)
  *  getBatteryVoltage
  *  
  *  Get the ADC reading from the pin attached to the battery voltage divider
- *  ADC reads 0-4095
- *  Max voltage is 3.3V
+ *  ADC reads 0-4095, over 0 to 3.3V
+ *  Max voltage (12V) will read 3V, ie ~3722
  */
 float getBatteryVoltage() 
 {
   float ADCVal = analogRead(BATTERY_TEST_PIN);
-  return ADCVal * 3.3 / 4095;
+  float batteryVoltage = (ADCVal * 4 * 3) / 3722;
+//  Serial.println("Battery voltage: " + String(batteryVoltage));
+  return batteryVoltage;
 }
 
 float getBatteryPercentage()
 {
-  return 100 * (getBatteryVoltage() / 3.3); // TODO get the actual battery percentage...
+  return 100 * ((getBatteryVoltage() - 10.5) / 1.5); // TODO get the actual battery percentage...
 }
 
 /*
