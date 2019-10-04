@@ -1,4 +1,4 @@
 # wrist-zapper
-Code for an IMU-based wearable wrist extension angle estimator. Part of an undergraduate thesis.
+A portable wrist pose controlled electrocutaneous stimulator. Part of an undergraduate thesis.
 
 Readme to follow shortly...
