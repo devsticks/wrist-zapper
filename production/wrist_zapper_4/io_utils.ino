@@ -37,7 +37,8 @@ void setupGPIO(void)
 void setupSD(void)
 {
   //setup SD card
-  if(!SD.begin()){
+  if (!SD.begin())
+  {
       Serial.println("Card Mount Failed");
       return;
   }
@@ -163,9 +164,11 @@ void toggleLED(bool &ledState, int pin)
 /* 
  *  getBatteryVoltage
  *  
- *  Get the ADC reading from the pin attached to the battery voltage divider
- *  ADC reads 0-4095, over 0 to 3.3V
- *  Max voltage (12V) will read 3V, ie ~3722
+ *  @ description:
+ *      - Takes the ADC reading from the pin attached to the battery voltage divider
+ *      - ADC reads 0-4095, over 0 to 3.3V
+ *      - Max voltage (12V) will read 3V, ie ~3722
+ *  @ return: float - the battery voltage
  */
 float getBatteryVoltage() 
 {
@@ -175,6 +178,10 @@ float getBatteryVoltage()
   return batteryVoltage;
 }
 
+/* 
+ *  getBatteryPercentage
+ *  
+ */
 float getBatteryPercentage()
 {
   return 100 * ((getBatteryVoltage() - 10.5) / 1.5); // TODO get the actual battery percentage...
@@ -185,8 +192,8 @@ float getBatteryPercentage()
  *  
  *  @ description: writes a line to the Blynk app lcd screen
  *  @ params: 
- *  - line - zero-indexed line number, 0 or 1
- *  - message - a string to be written; will be truncated at 16 characters 
+ *      - line - zero-indexed line number, 0 or 1
+ *      - message - a string to be written; will be truncated at 16 characters 
  */
 void lcdPrint(char line, String message)
 {
@@ -196,14 +203,26 @@ void lcdPrint(char line, String message)
   lcd.print(0, line, message);
 }
 
+/*
+ *  BLYNK_CONNECTED
+ *  
+ *  @ description: run when device connects to Blynk app
+ */
 BLYNK_CONNECTED() 
 {
   Blynk.virtualWrite(BLYNK_SHOCK_START_ANGLE_PIN, shockStartAngle);
   Blynk.virtualWrite(BLYNK_SHOCK_MAX_ANGLE_PIN, shockMaxAngle);
   Blynk.virtualWrite(BLYNK_SHOCK_START_INTENSITY_PIN, shockStartIntensity);
   Blynk.virtualWrite(BLYNK_SHOCK_MAX_INTENSITY_PIN, shockMaxIntensity);
+
+  rtc.begin(); // sync time with Blynk real time clock
 }
 
+/*
+ *  BLYNK_WRITE - Start calibration
+ *  
+ *  @ description: run when Calibrate button is pressed in Blynk app
+ */
 BLYNK_WRITE(BLYNK_START_CALIB_PIN) 
 {
   if (param.asInt() == 1) // start calibration on down press of calibration button
@@ -215,22 +234,47 @@ BLYNK_WRITE(BLYNK_START_CALIB_PIN)
   }
 }
 
+/*
+ *  BLYNK_WRITE - Change shock start angle
+ *  
+ *  @ description: updates when shock start angle slider is altered in Blynk app
+ */
 BLYNK_WRITE(BLYNK_SHOCK_START_ANGLE_PIN) 
 {
   shockStartAngle = param.asInt();
 }
 
+/*
+ *  BLYNK_WRITE - Change shock max angle
+ *  
+ *  @ description: updates when shock max angle slider is altered in Blynk app
+ */
 BLYNK_WRITE(BLYNK_SHOCK_MAX_ANGLE_PIN) 
 {
   shockMaxAngle = param.asInt();
 }
 
+/*
+ *  BLYNK_WRITE - Change shock start intensity
+ *  
+ *  @ description: updates when shock start intensity is altered in Blynk app
+ */
 BLYNK_WRITE(BLYNK_SHOCK_START_INTENSITY_PIN) 
 {
   shockStartIntensity = param.asInt();
 }
 
+/*
+ *  BLYNK_WRITE - Change shock max intensity
+ *  
+ *  @ description: updates when shock max intensity is altered in Blynk app
+ */
 BLYNK_WRITE(BLYNK_SHOCK_MAX_INTENSITY_PIN) 
 {
   shockMaxIntensity = param.asInt();
+}
+
+String getDateTimeString()
+{
+  return String(day()) + "/" + month() + "/" + year() + ", " + String(hour()) + ":" + minute() + ":" + second();
 }

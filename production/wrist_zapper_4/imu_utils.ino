@@ -180,13 +180,14 @@ void calibrate()
     }
 
     Serial.println("Hand isn't in calibration range");
-    Serial.println("Calib extension angle is " + String(extensionAngle));
   
     digitalWrite(EXTERNAL_RED_LED_PIN, 1);                              // turn on red LED to say we're not happy
     Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#D3435C");         // change Blynk app's calibrating indicator LED to red
   }
 
   // TODO some more thorough calibration vibe....
+
+  Serial.println("Calibrated baseline extension angle is " + String(extensionAngle));
         
   digitalWrite(EXTERNAL_RED_LED_PIN, 0);                                  // turn off red LED cause we're happy now
   Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#43D35C");             // change Blynk app's calibrating indicator LED to green

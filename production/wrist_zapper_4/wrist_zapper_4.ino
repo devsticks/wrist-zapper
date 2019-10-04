@@ -11,19 +11,19 @@
 
 //// -- INCLUDES -- ////
 
-#include "I2Cdev.h"                                 // helper functions for IMU interfacing
-#include "MPU6050_6Axis_MotionApps_V6_12.h"         // functions specific to the MPU6050
-#include "SD.h"                                     // SD card interfacing
-//#include "Quaternion.h"
-#include "helper_3dmath.h"                          // quaternion math
-#include "BasicLinearAlgebra.h"                     // matrix math
-#include "driver/ledc.h"                            // PWM control
-#include "Wire.h"                                   // nice GPIO functions
-
-
 #include "BlynkSimpleEsp32_BLE.h"
 #include "BLEDevice.h"
 #include "BLEServer.h"
+
+#include "I2Cdev.h"                                 // helper functions for IMU interfacing https://github.com/jrowberg/i2cdevlib
+#include "MPU6050_6Axis_MotionApps_V6_12.h"         // functions specific to the MPU6050, from I2CDevLib https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050
+#include "SD.h"                                     // SD card interfacing
+#include "TimeLib.h"                                // Paul Stoffregen's Arduino time library https://github.com/PaulStoffregen/Time
+#include "WidgetRTC.h"                              // to get real time from Blynk
+#include "helper_3dmath.h"                          // quaternion math, part of I2CDevLib https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050
+#include "BasicLinearAlgebra.h"                     // matrix math, https://github.com/tomstewart89/BasicLinearAlgebra
+#include "driver/ledc.h"                            // PWM control
+#include "Wire.h"                                   // nice GPIO functions
 
 //// -- CONSTANT DEFINITIONS -- ////
 
@@ -91,6 +91,7 @@ BlynkTimer fastTimer, slowTimer;
 WidgetLCD lcd(BLYNK_LCD_PIN);                       // init Blynk LCD variable
 WidgetLED sdLED(BLYNK_SD_LED_PIN);                  // init Blynk SD indicator LED
 WidgetLED calibLED(BLYNK_CALIB_LED_PIN);            // init Blynk calibration indicator LED
+WidgetRTC rtc;                                      // init Blynk real time clock object
 // Auth Token for the microcontroller device.
 // Go to Project Settings (nut icon) in the Blynk App to generate one.
 char auth[] = "fMTNpL-rwcWIsqoN3n3SwtQAUDk7_YZg";   // Tom's ESP32
@@ -132,6 +133,15 @@ void slowTimerEvent()
         lcdPrint(1, "Replace now");
       }
     }
+
+    if (sdStatus) // mircoSD card is working fine
+    {
+      Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#43D35C");        // make Blynk app's SD indicator LED green
+    }
+    else
+    {
+      Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#D3435C");        // make Blynk app's SD indicator LED red
+    }
 }
 
 //// -- SETUP -- ////
@@ -156,6 +166,8 @@ void setup()
     Serial.println(F("anything else and get it printed back."));
     Serial.flush();
 
+    setSyncInterval(10 * 60); // update real time clock every 10 minutes
+
     lcdPrint(0, "Device online");
     lcdPrint(1, "Hello!");
 
@@ -165,6 +177,7 @@ void setup()
 
     setupIMU(imu1, mpu1IntStatus, dmp1Ready, packet1Size, "IMU 1");
     setupIMU(imu2, mpu2IntStatus, dmp2Ready, packet2Size, "IMU 2");
+    
     setupSD();
 
     if (devStatus != 0 || !dmp1Ready || ! dmp2Ready) { /* startupFailed() TODO turn a red light on or something to show there's a problem */ }
@@ -275,7 +288,30 @@ void loop() {
         updateIMUs();                                             // get fresh quaternion orientations
 
         extensionAngle = calcExtensionAngle(q_arm, q_hand); 
-        appendFile(SD, "/angle_log.txt", String(extensionAngle));
+
+        // build date time string for easy conversion to CSV
+        String dateString = "";
+        switch (timeStatus()) { 
+          case timeSet:
+          {
+               dateString = "Set, ";
+               break;
+          }
+          case timeNeedsSync: 
+          { 
+             dateString = "Needs Sync, ";
+             break;
+          }
+          default: 
+          { 
+             dateString = "Not Set, ";
+             break;
+          }
+        }
+
+        dateString += getDateTimeString();
+        
+        appendFile(SD, "/angle_log.txt", dateString + ", " + String(extensionAngle) + "\n");
         
         Serial.println(String(extensionAngle));
         updateShock(extensionAngle);
