@@ -14,10 +14,12 @@
 #include "I2Cdev.h"                                 // helper functions for IMU interfacing
 #include "MPU6050_6Axis_MotionApps_V6_12.h"         // functions specific to the MPU6050
 #include "SD.h"                                     // SD card interfacing
+//#include "Quaternion.h"
 #include "helper_3dmath.h"                          // quaternion math
 #include "BasicLinearAlgebra.h"                     // matrix math
 #include "driver/ledc.h"                            // PWM control
 #include "Wire.h"                                   // nice GPIO functions
+
 
 #include "BlynkSimpleEsp32_BLE.h"
 #include "BLEDevice.h"
@@ -119,14 +121,16 @@ void fastTimerEvent()
 void slowTimerEvent() 
 {
     slowTicToc != slowTicToc;
-
-    if (getBatteryVoltage() > 10.5) // above 3.5V per cell
+    if (!calibrating) 
     {
-      lcdPrint(0, "Angle: " + String(extensionAngle));
-      lcdPrint(1, "Shock at: " + String(shockPercentage) + "%");
-    } else {  // battery is dead (less than 3.5V per cell, panic)
-      lcdPrint(0, "Battery depleted");
-      lcdPrint(1, "Replace now");
+      if (getBatteryVoltage() > 10.5) // above 3.5V per cell
+      {
+        lcdPrint(0, "Angle: " + String(extensionAngle));
+        lcdPrint(1, "Shock at: " + String(shockPercentage) + "%");
+      } else {  // battery is dead (less than 3.5V per cell, panic)
+        lcdPrint(0, "Battery depleted");
+        lcdPrint(1, "Replace now");
+      }
     }
 }
 
@@ -210,7 +214,7 @@ void appendFile(fs::FS &fs, const char * path, /*const char * */ String message)
     }
     else // something's gone wrong, but we knew this already
     {
-        digitalWrite(EXTERNAL_GREEN_LED_PIN, 0);                             // turn the green LED off
+        digitalWrite(EXTERNAL_GREEN_LED_PIN, 0);                        // turn the green LED off
     } 
 }
 
@@ -219,7 +223,6 @@ void loop() {
     fastTimer.run(); // Initiates BlynkTimer
     slowTimer.run(); 
   
-         Serial.println(String(getBatteryVoltage()));
   // Check for new data in the IMU FIFO's
 //  if ( imu1.fifoAvailable() || imu2.fifoAvailable() )
 //  {
@@ -267,46 +270,11 @@ void loop() {
         fifoCount2 = imu2.getFIFOCount();
         Serial.println(F("FIFO overflow!"));
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
-    } else if (mpu1IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT)) {
-        // wait for correct available data length, should be a VERY short wait
-        while (fifoCount1 < packet1Size) fifoCount1 = imu1.getFIFOCount();
+    } else if (mpu1IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT)) 
+    {
+        updateIMUs();                                             // get fresh quaternion orientations
 
-        // read a packet from FIFO
-        imu1.getFIFOBytes(fifoBuffer1, packet1Size);
-        
-        // track FIFO count here in case there is > 1 packet available
-        // (this lets us immediately read more without waiting for an interrupt)
-        fifoCount1 -= packet1Size;
-        
-        // display quaternion values in easy matrix form: w x y z
-        imu1.dmpGetQuaternion(&q_arm, fifoBuffer1);
-//        Serial.print("quat1\t");
-//        Serial.print(q_arm.w);
-//        Serial.print("\t");
-//        Serial.print(q_arm.x);
-//        Serial.print("\t");
-//        Serial.print(q_arm.y);
-//        Serial.print("\t");
-//        Serial.println(q_arm.z);
-
-        while (fifoCount2 < packet2Size) fifoCount2 = imu2.getFIFOCount();
-        
-        imu2.getFIFOBytes(fifoBuffer2, packet2Size);
-        fifoCount2 -= packet2Size;
-
-        imu2.dmpGetQuaternion(&q_hand, fifoBuffer2);
-//        Serial.print("quat2\t");
-//        Serial.print(q_hand.w);
-//        Serial.print("\t");
-//        Serial.print(q_hand.x);
-//        Serial.print("\t");
-//        Serial.print(q_hand.y);
-//        Serial.print("\t");
-//        Serial.println(q_hand.z);
-
-//        calibrated_hand = q_calib * q_hand; //rotate back by calibration amount
-        Quaternion calibrated_hand = q_hand;
-        extensionAngle = calcExtensionAngle(q_arm, calibrated_hand); 
+        extensionAngle = calcExtensionAngle(q_arm, q_hand); 
         appendFile(SD, "/angle_log.txt", String(extensionAngle));
         
         Serial.println(String(extensionAngle));

@@ -71,6 +71,10 @@ float calcExtensionAngle(Quaternion q_arm, Quaternion q_hand)
 
 //// -- SETUP -- ////
 
+    // apply calibration
+    Quaternion q_hand_calibrated = q_calib.getProduct(q_hand);  // rotate back by calibration amount
+    q_hand_calibrated.normalize();
+
     // convert arm quaternion to rotation matrix
     BLA::Matrix<3,3> arm_rot = q_arm.getRotationMatrix();
 //    Serial << "ret(2,0): " << arm_rot << '\n'; 
@@ -81,7 +85,7 @@ float calcExtensionAngle(Quaternion q_arm, Quaternion q_hand)
     BLA::Matrix<3> arm_z = getNormalizedCol(arm_rot, 2);
 
     // convert hand quaternion to rotation matrix
-    BLA::Matrix<3,3> hand_rot = q_hand.getRotationMatrix();
+    BLA::Matrix<3,3> hand_rot = q_hand_calibrated.getRotationMatrix();
 
     // pull normalized direction vectors from rotation matrix
     BLA::Matrix<3> hand_x = getNormalizedCol(hand_rot, 0);

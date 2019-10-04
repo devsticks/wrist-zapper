@@ -93,7 +93,7 @@ void saveToSD(void)
 // convert a percentage of max current to a DAC value
 int toDac(int percentage)
 {
-  float minVoltage = 0.8; // threshold voltage of BJT
+  float minVoltage = 0.7; // threshold voltage of BJT
   float maxVoltage = 3.1; // max produceable voltage
   int dacMaxVal = 255;
 
@@ -117,15 +117,22 @@ void updateShock(float extensionAngle)
   int shockAngleRange = shockMaxAngle - shockStartAngle;
   int shockIntensityRange = shockMaxIntensity - shockStartIntensity;
   float intensity = 0;
-  
-  if (extensionAngle > shockStartAngle + shockAngleRange) // max intensity
+
+  if (calibrating || extensionAngle < shockStartAngle) // don't shock if we're out of range or calibrating
+  {
+//      ledcWrite(STIM_PIN,0);
+      intensity = 0;
+      dacWrite(STIM_PIN,0);
+      Serial.println("Shock off");
+  }
+  else if (extensionAngle > shockStartAngle + shockAngleRange) // max intensity
   { 
     intensity = shockStartIntensity + shockIntensityRange;
     int j = toDac(intensity);
     dacWrite(0,j);
     Serial.println("Shocking at max intensity, " + String(intensity) + "%!");
   } 
-  else if (extensionAngle > shockStartAngle) 
+  else // normal shock range
   {
     intensity = shockStartIntensity + (extensionAngle - shockStartAngle)/(shockAngleRange / shockIntensityRange);
 //      for(int i=0;i<100;i+=10) {
@@ -138,12 +145,7 @@ void updateShock(float extensionAngle)
     Serial.println("Shocking at " + String(intensity) + "%!");
 //        delay(2000);            
 //      } 
-  } else {
-//      ledcWrite(STIM_PIN,0);
-      intensity = 0;
-      dacWrite(STIM_PIN,0);
-      Serial.println("Shock off");
-  }
+  } 
 
   shockPercentage = intensity;
 }
@@ -204,10 +206,13 @@ BLYNK_CONNECTED()
 
 BLYNK_WRITE(BLYNK_START_CALIB_PIN) 
 {
-  calibLED.on();
-  Serial.println("Calibration requested");
-  calibrate();
-  calibLED.off();
+  if (param.asInt() == 1) // start calibration on down press of calibration button
+  {
+    calibLED.on();
+    Serial.println("Calibration requested");
+    calibrate();
+    calibLED.off();
+  }
 }
 
 BLYNK_WRITE(BLYNK_SHOCK_START_ANGLE_PIN) 

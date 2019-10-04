@@ -88,40 +88,40 @@ void dmp2DataReady() {
     mpu2Interrupt = true;
 }
 
-void printIMUData(MPU6050 &imu1, MPU6050 &imu2)
-{          
-    imu1.dmpGetQuaternion(&q_arm, fifoBuffer1);
-    imu2.dmpGetQuaternion(&q_hand, fifoBuffer2);
-
-    float extensionAngle = calcExtensionAngle(q_arm, q_hand);
-    Serial.println(String(extensionAngle));
-
-    int stimRangeStart = 30; // start stimulus at this point
-    int stimRange = 30; // range over which intensity varies
-    float stimIntensityStart = 0; // percentage intensity at stimRangeStart
-    float stimIntensityRange = 2; // increase in percentage intensity from stimRangeStart to end of stimRange
-
-    // don't want the wearer getting inadvertantly shocked mid-calibration
-    if (calibrated && (extensionAngle > stimRangeStart + stimRange)) // max intensity
-    { 
-      float intensity = stimIntensityStart + stimIntensityRange;
-      int j = toDac(intensity);
-      dacWrite(0,j);
-      Serial.println("Shocking at max intensity, " + String(intensity) + "%!");
-    } 
-    else if (calibrated && (extensionAngle > stimRangeStart)) 
-    {
-      float intensity = stimIntensityStart + (extensionAngle - stimRangeStart)/(stimRange / stimIntensityRange);
-//      for(int i=0;i<100;i+=10) {
-      int j = toDac(intensity);
-      dacWrite(0,j);
-      Serial.println("Shocking at " + String(intensity) + "%!");
-//        delay(2000);            
-//      } 
-    } else {
-        dacWrite(0,0);
-        Serial.println("Shock off");
-    }
+//void printIMUData(MPU6050 &imu1, MPU6050 &imu2)
+//{          
+//    imu1.dmpGetQuaternion(&q_arm, fifoBuffer1);
+//    imu2.dmpGetQuaternion(&q_hand, fifoBuffer2);
+//
+//    float extensionAngle = calcExtensionAngle(q_arm, q_hand);
+//    Serial.println(String(extensionAngle));
+//
+//    int stimRangeStart = 30; // start stimulus at this point
+//    int stimRange = 30; // range over which intensity varies
+//    float stimIntensityStart = 0; // percentage intensity at stimRangeStart
+//    float stimIntensityRange = 2; // increase in percentage intensity from stimRangeStart to end of stimRange
+//
+//    // don't want the wearer getting inadvertantly shocked mid-calibration
+//    if (calibrated && (extensionAngle > stimRangeStart + stimRange)) // max intensity
+//    { 
+//      float intensity = stimIntensityStart + stimIntensityRange;
+//      int j = toDac(intensity);
+//      dacWrite(0,j);
+//      Serial.println("Shocking at max intensity, " + String(intensity) + "%!");
+//    } 
+//    else if (calibrated && (extensionAngle > stimRangeStart)) 
+//    {
+//      float intensity = stimIntensityStart + (extensionAngle - stimRangeStart)/(stimRange / stimIntensityRange);
+////      for(int i=0;i<100;i+=10) {
+//      int j = toDac(intensity);
+//      dacWrite(0,j);
+//      Serial.println("Shocking at " + String(intensity) + "%!");
+////        delay(2000);            
+////      } 
+//    } else {
+//        dacWrite(0,0);
+//        Serial.println("Shock off");
+//    }
     
 //    String imustring = String(q_arm.a) + "," + String(q_arm.b) + "," + String(q_arm.c) + "," + String(q_arm.d) + "," + String(q_hand.a) + "," + String(q_hand.b) + "," + String(q_hand.c) + "," + String(q_hand.d) + "\n";
     
@@ -137,43 +137,53 @@ void printIMUData(MPU6050 &imu1, MPU6050 &imu2)
 //            + String(imu.pitch) + ", " + String(imu.yaw));
 //  SerialPort.println("Time: " + String(imu.time) + " ms");
 //  SerialPort.println();
-}
+//}
 
 void calibrate() 
 {
   calibrated = false;
   calibrating = true;
+  updateShock(0);                                       
 
   lcdPrint(0, "Place hand flat,");
   lcdPrint(1, "elbow on table.");
   Blynk.setProperty(BLYNK_START_CALIB_PIN, "offLabel", "Running");
+
+  q_calib = Quaternion(1,0,0,0);                                          // reset calibration so we don't carry range set with previous calibration into next one
+  extensionAngle = calcExtensionAngle(q_arm, q_hand); 
+  Serial.println("Calib extension angle is " + String(extensionAngle));
   
+  while (abs(extensionAngle) > 10)  // wait until hand is roughly flat
+  { 
+          
+          // reset interrupt flag and get INT_STATUS byte
+    mpu1Interrupt = false;
+    mpu1IntStatus = imu1.getIntStatus();
 
-  while (abs(calcExtensionAngle(q_arm, q_hand)) > 10)  { // hand isn't actually flat
-    // update angle
-    
-      while (fifoCount1 < packet1Size) fifoCount1 = imu1.getFIFOCount();
+    // get current FIFO count
+    fifoCount1 = imu1.getFIFOCount();
+    fifoCount2 = imu2.getFIFOCount();
 
-      // read a packet from FIFO
-      imu1.getFIFOBytes(fifoBuffer1, packet1Size);
-      
-      // track FIFO count here in case there is > 1 packet available
-      // (this lets us immediately read more without waiting for an interrupt)
-      fifoCount1 -= packet1Size;
-      
-      // display quaternion values in easy matrix form: w x y z
-      imu1.dmpGetQuaternion(&q_arm, fifoBuffer1);
+    // check for overflow (this should never happen unless our code is too inefficient)
+    if ((mpu1IntStatus & _BV(MPU6050_INTERRUPT_FIFO_OFLOW_BIT)) || fifoCount1 >= 1024) {
+        // reset so we can continue cleanly
+        imu1.resetFIFO();
+        imu2.resetFIFO();
+        fifoCount1 = imu1.getFIFOCount();
+        fifoCount2 = imu2.getFIFOCount();
+        Serial.println(F("FIFO overflow!"));
+    // otherwise, check for DMP data ready interrupt (this should happen frequently)
+    } else if (mpu1IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT)) 
+    {
+        updateIMUs();                                                    // update quaternion readings from IMU FIFOs
+        extensionAngle = calcExtensionAngle(q_arm, q_hand);              // update angle 
+    }
 
-      while (fifoCount2 < packet2Size) fifoCount2 = imu2.getFIFOCount();
-      
-      imu2.getFIFOBytes(fifoBuffer2, packet2Size);
-      fifoCount2 -= packet2Size;
-
-      imu2.dmpGetQuaternion(&q_hand, fifoBuffer2);
-
-      Serial.println("Hand isn't in calibration range");
-      digitalWrite(EXTERNAL_RED_LED_PIN, 1);                              // turn on red LED to say we're not happy
-      Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#D3435C");         // change Blynk app's calibrating indicator LED to red
+    Serial.println("Hand isn't in calibration range");
+    Serial.println("Calib extension angle is " + String(extensionAngle));
+  
+    digitalWrite(EXTERNAL_RED_LED_PIN, 1);                              // turn on red LED to say we're not happy
+    Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#D3435C");         // change Blynk app's calibrating indicator LED to red
   }
 
   // TODO some more thorough calibration vibe....
@@ -182,7 +192,8 @@ void calibrate()
   Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#43D35C");             // change Blynk app's calibrating indicator LED to green
   digitalWrite(EXTERNAL_GREEN_LED_PIN, 1);                                // turn on green LED
 
-//  q_calib = q_arm * conj(q_hand);                                         // calculate rotation of hand frame to arm frame
+  q_calib = q_arm.getProduct(q_hand.getConjugate());                                // calculate rotation of hand frame to arm frame
+  q_calib.normalize();
 
   lcdPrint(0, "Calibration done!");
   lcdPrint(1, " ");
@@ -190,4 +201,47 @@ void calibrate()
   Blynk.setProperty(BLYNK_START_CALIB_PIN, "offLabel", "Start");
 
   calibrating = false;
+}
+
+void updateIMUs()
+{
+    // wait for correct available data length, should be a VERY short wait
+    while (fifoCount1 < packet1Size) fifoCount1 = imu1.getFIFOCount();
+
+    // read a packet from FIFO
+    imu1.getFIFOBytes(fifoBuffer1, packet1Size);
+    
+    // track FIFO count here in case there is > 1 packet available
+    // (this lets us immediately read more without waiting for an interrupt)
+    fifoCount1 -= packet1Size;
+    
+    // display quaternion values in easy matrix form: w x y z
+    imu1.dmpGetQuaternion(&q_arm, fifoBuffer1);
+
+    while (fifoCount2 < packet2Size) fifoCount2 = imu2.getFIFOCount();
+    
+    imu2.getFIFOBytes(fifoBuffer2, packet2Size);
+    fifoCount2 -= packet2Size;
+
+    imu2.dmpGetQuaternion(&q_hand, fifoBuffer2);
+
+// to print out quat values
+
+//        Serial.print("quat1\t");
+//        Serial.print(q_arm.w);
+//        Serial.print("\t");
+//        Serial.print(q_arm.x);
+//        Serial.print("\t");
+//        Serial.print(q_arm.y);
+//        Serial.print("\t");
+//        Serial.println(q_arm.z);
+
+//        Serial.print("quat2\t");
+//        Serial.print(q_hand.w);
+//        Serial.print("\t");
+//        Serial.print(q_hand.x);
+//        Serial.print("\t");
+//        Serial.print(q_hand.y);
+//        Serial.print("\t");
+//        Serial.println(q_hand.z);
 }
