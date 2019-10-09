@@ -51,29 +51,54 @@ void setupSD(void)
  *  Will create the file if it doesn't exist.
  *  
  *  Params:
- *  - &fs: an SD (or other) card object
+ *  - &fs: reference to an SD (or other) card object
  *  - path: the absolute path to the file to write to
  *  - message: the string to be appended
  */
-//void appendFile(fs::FS &fs, const char * path, /*const char * */ String message)
-//{
-//    Serial.printf("Appending to file: %s\n", path);
-//
-//    File file = fs.open(path, FILE_APPEND);
-//    if(!file){
-//        Serial.println("Failed to open file for appending");
-//        return;
-//    }
-//    if(file.print(message)){
-//        Serial.println("Message appended");
-//    } else {
-//        Serial.println("Append failed");
-//    }
-//    file.close();
-//}
-
-void saveToSD(void)
+void appendFile(fs::FS &fs, const char * path, /*const char * */ String message)
 {
+//    Serial.printf("Appending to file: %s\n", path);
+    bool flag = true;                                                   // assume all is well
+
+    File file = fs.open(path, FILE_APPEND);
+    if (!file) {
+        Serial.println("Failed to open file for appending");
+        flag = false;                                                   // all is actually not well
+    } else if (file.print(message)) {
+//        Serial.printf("Message appended to file: %s\n", path);
+    } else {
+        Serial.println("Append failed");
+        flag = false;                                                   // all definitely isn't well
+        Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#D3435C");        // make Blynk app's SD indicator LED red
+    }
+    file.close();
+
+    // change LED indicator colour if necessary
+    if (flag && sdStatus) // all is good, we knew it was so
+    {
+        if (!calibrating) {
+            toggleLED(externalGreenLEDState, EXTERNAL_GREEN_LED_PIN);   // blink green LED to show we're writing happily
+        } // else if calibrating, do nothing
+    } 
+    else if (flag && !sdStatus)  // what was wrong has just come right 
+    {
+        sdStatus = true;
+        Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#43D35C");        // make Blynk app's SD indicator LED green
+    }
+    else if (!flag && sdStatus) // something's just gone wrong
+    {
+        sdStatus = false;
+        Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#D3435C");        // change Blynk app's SD indicator LED red
+        digitalWrite(EXTERNAL_GREEN_LED_PIN, 0);                        // turn the green LED off
+    }
+    else // something's gone wrong, but we knew this already
+    {
+        digitalWrite(EXTERNAL_GREEN_LED_PIN, 0);                        // turn the green LED off
+    } 
+}
+
+//void saveToSD(void)
+//{
 //    float q1w = imu1.calcQuat(imu1.qw);
 //    float q1x = imu1.calcQuat(imu1.qx);
 //    float q1y = imu1.calcQuat(imu1.qy);
@@ -89,16 +114,16 @@ void saveToSD(void)
 //    //const char * IMU1Char = (const char *)IMU1String;
 //    //appendFile(SD, "/log.txt", headerString + "\n");
 //    appendFile(SD, "/qlog.txt", IMUString);
-}
+//}
 
 // convert a percentage of max current to a DAC value
 int toDac(int percentage)
 {
-  float minVoltage = 0.7; // threshold voltage of BJT
-  float maxVoltage = 3.1; // max produceable voltage
+  float minVoltage = 0.4; // threshold voltage of BJT
+  float maxVoltage = 3.12; // max produceable voltage
   int dacMaxVal = 255;
-
-  float outputVoltage = ((percentage * 0.01) * (maxVoltage - minVoltage)) + minVoltage; // calculate the output voltage we want
+float outputVoltage = 0.6;
+//  float outputVoltage = ((percentage * 0.01) * (maxVoltage - minVoltage)) + minVoltage; // calculate the output voltage we want
   int dacVal = round(outputVoltage * (255 / maxVoltage)); // convert required voltage to a DAC value
   
   return dacVal;
@@ -143,7 +168,7 @@ void updateShock(float extensionAngle)
 //    ledcWrite(STIM_PIN, j);
 
     dacWrite(STIM_PIN,j);
-    Serial.println("Shocking at " + String(intensity) + "%!");
+//    Serial.println("Shocking at " + String(intensity) + "%!");
 //        delay(2000);            
 //      } 
   } 
@@ -154,7 +179,6 @@ void updateShock(float extensionAngle)
 /* 
  *  Toggle the state of an LED pin given it's state variable and pin number
  */
-
 void toggleLED(bool &ledState, int pin) 
 {
   ledState = !ledState;
@@ -210,6 +234,9 @@ void lcdPrint(char line, String message)
  */
 BLYNK_CONNECTED() 
 {
+  lcdPrint(0, "Device online");
+  lcdPrint(1, "Hello!");
+  
   Blynk.virtualWrite(BLYNK_SHOCK_START_ANGLE_PIN, shockStartAngle);
   Blynk.virtualWrite(BLYNK_SHOCK_MAX_ANGLE_PIN, shockMaxAngle);
   Blynk.virtualWrite(BLYNK_SHOCK_START_INTENSITY_PIN, shockStartIntensity);
@@ -274,6 +301,11 @@ BLYNK_WRITE(BLYNK_SHOCK_MAX_INTENSITY_PIN)
   shockMaxIntensity = param.asInt();
 }
 
+/*
+ *  getDateTimeString
+ *  
+ *  @ description: returns a formatted string of the current system time (which defaults to 1970 if not set... See timeStatus() )
+ */
 String getDateTimeString()
 {
   return String(day()) + "/" + month() + "/" + year() + ", " + String(hour()) + ":" + minute() + ":" + second();

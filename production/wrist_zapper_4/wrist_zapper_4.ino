@@ -28,6 +28,7 @@
 //// -- CONSTANT DEFINITIONS -- ////
 
 using namespace BLA;                                // BasicLinearAlgebra namespace
+#define BATTERY_CUTOFF_VOLTAGE 10.5                 // Voltage at which the device starts to complain about a low battery
 
 // hardware pins
 #define INTERNAL_LED_PIN 13 
@@ -97,51 +98,102 @@ WidgetRTC rtc;                                      // init Blynk real time cloc
 char auth[] = "fMTNpL-rwcWIsqoN3n3SwtQAUDk7_YZg";   // Tom's ESP32
 bool slowTicToc = false;
 
+
+//// -- FUNCTION PROTOTYPES -- ////
+/* the Arduino IDE doesn't build function prototypes if they take references as arguments, so we have to make them ourselves... */
+
+void appendFile(fs::FS &fs, const char * path, /*const char * */ String message);
+
+
 //// -- TIMER FUNCTIONS -- ////
 
 // In the app, Widget's reading frequency should be set to PUSH. This means
 // that you define how often to send data to Blynk App.
-void fastTimerEvent()
+void fastTimerEvent() // 500ms
 {
     // You can send any value at any time.
     // Please don't send more that 10 values per second.
     Blynk.virtualWrite(BLYNK_EXT_ANGLE_PIN, extensionAngle);
     Blynk.virtualWrite(BLYNK_BATTERY_PIN, getBatteryVoltage());
 
-    if (extensionAngle >= 30) {
+// TODO try map(extensionAngle, 0, 90, 1, 10), then switch (extensionAngle) { case ....
+
+    if (extensionAngle >= 90) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 10);
+    } else if (extensionAngle >= 80) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 9);
+    } else if (extensionAngle >= 70) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 8);
+    } else if (extensionAngle >= 60) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 7);
+    } else if (extensionAngle >= 50) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 6);
+    } else if (extensionAngle >= 40) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 5);
+    } else if (extensionAngle >= 30) {
       Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 4);
     } else if (extensionAngle >= 20) {
       Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 3);
     } else if (extensionAngle >= 10) {
       Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 2);
-    } else {
+    } else if (extensionAngle > -10) {
       Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 1);
+    } else if (extensionAngle > -20) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 11);
+    } else if (extensionAngle > -30) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 12);
+    } else if (extensionAngle > -40) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 13);
+    } else if (extensionAngle > -50) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 14);
+    } else if (extensionAngle > -60) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 15);
+    } else if (extensionAngle > -70) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 16);
+    } else if (extensionAngle > -80) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 17);
+    } else if (extensionAngle > -90) {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 18);
+    } else {
+      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 19);
+    } 
+
+    // Blink the red light if battery is dead
+    if (getBatteryVoltage() < BATTERY_CUTOFF_VOLTAGE)
+    {
+      toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);
+    } 
+    else if (externalRedLEDState && !calibrating) // if red LED is on and battery is fine, kill it
+    {
+      externalRedLEDState = false;
+      digitalWrite(EXTERNAL_RED_LED_PIN, 0);
     }
 }
 
-void slowTimerEvent() 
+void slowTimerEvent() // 3s
 {
-    slowTicToc != slowTicToc;
-    if (!calibrating) 
+  slowTicToc != slowTicToc;
+  if (!calibrating) // don't overwrite instructions on LCD screen 
+  {
+    if (getBatteryVoltage() > BATTERY_CUTOFF_VOLTAGE) // above 10.5V, i.e. 3.5V per cell
     {
-      if (getBatteryVoltage() > 10.5) // above 3.5V per cell
-      {
-        lcdPrint(0, "Angle: " + String(extensionAngle));
-        lcdPrint(1, "Shock at: " + String(shockPercentage) + "%");
-      } else {  // battery is dead (less than 3.5V per cell, panic)
-        lcdPrint(0, "Battery depleted");
-        lcdPrint(1, "Replace now");
-      }
+      // TODO what to display generally?
+//      lcdPrint(0, "Angle: " + String(extensionAngle));
+//      lcdPrint(1, "Shock at: " + String(shockPercentage) + "%");
+    } else {  // battery is dead (less than 3.5V per cell, panic)
+      lcdPrint(0, "Battery depleted");
+      lcdPrint(1, "Replace now");
     }
+  }
 
-    if (sdStatus) // mircoSD card is working fine
-    {
-      Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#43D35C");        // make Blynk app's SD indicator LED green
-    }
-    else
-    {
-      Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#D3435C");        // make Blynk app's SD indicator LED red
-    }
+  if (sdStatus) // mircoSD card is working fine
+  {
+    Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#43D35C");        // make Blynk app's SD indicator LED green
+  }
+  else
+  {
+    Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#D3435C");        // make Blynk app's SD indicator LED red
+  }
 }
 
 //// -- SETUP -- ////
@@ -189,48 +241,6 @@ void setup()
     calibrate();
 }
 
-void appendFile(fs::FS &fs, const char * path, /*const char * */ String message)
-{
-//    Serial.printf("Appending to file: %s\n", path);
-    bool flag = true;                                                   // assume all is well
-
-    File file = fs.open(path, FILE_APPEND);
-    if (!file) {
-        Serial.println("Failed to open file for appending");
-        flag = false;                                                   // all is actually not well
-    } else if (file.print(message)) {
-        Serial.printf("Message appended to file: %s\n", path);
-    } else {
-        Serial.println("Append failed");
-        flag = false;                                                   // all definitely isn't well
-        Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#D3435C");        // make Blynk app's SD indicator LED red
-    }
-    file.close();
-
-    // change LED indicator colour if necessary
-    if (flag && sdStatus) // all is good, we knew it was so
-    {
-        if (!calibrating) {
-            toggleLED(externalGreenLEDState, EXTERNAL_GREEN_LED_PIN);   // blink green LED to show we're writing happily
-        } // else if calibrating, do nothing
-    } 
-    else if (flag && !sdStatus)  // what was wrong has just come right 
-    {
-        sdStatus = true;
-        Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#43D35C");        // make Blynk app's SD indicator LED green
-    }
-    else if (!flag && sdStatus) // something's just gone wrong
-    {
-        sdStatus = false;
-        Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#D3435C");        // change Blynk app's SD indicator LED red
-        digitalWrite(EXTERNAL_GREEN_LED_PIN, 0);                        // turn the green LED off
-    }
-    else // something's gone wrong, but we knew this already
-    {
-        digitalWrite(EXTERNAL_GREEN_LED_PIN, 0);                        // turn the green LED off
-    } 
-}
-
 void loop() {
     Blynk.run();
     fastTimer.run(); // Initiates BlynkTimer
@@ -270,6 +280,9 @@ void loop() {
     mpu1Interrupt = false;
     mpu1IntStatus = imu1.getIntStatus();
 
+    mpu2Interrupt = false;
+    mpu2IntStatus = imu2.getIntStatus();
+
     // get current FIFO count
     fifoCount1 = imu1.getFIFOCount();
     fifoCount2 = imu2.getFIFOCount();
@@ -278,12 +291,15 @@ void loop() {
     if ((mpu1IntStatus & _BV(MPU6050_INTERRUPT_FIFO_OFLOW_BIT)) || fifoCount1 >= 1024) {
         // reset so we can continue cleanly
         imu1.resetFIFO();
+//        Serial.println(F("FIFO 1 overflow!"));
+    
+    } else if ((mpu2IntStatus & _BV(MPU6050_INTERRUPT_FIFO_OFLOW_BIT)) || fifoCount2 >= 1024) {
+        // reset so we can continue cleanly
         imu2.resetFIFO();
-        fifoCount1 = imu1.getFIFOCount();
-        fifoCount2 = imu2.getFIFOCount();
-        Serial.println(F("FIFO overflow!"));
-    // otherwise, check for DMP data ready interrupt (this should happen frequently)
-    } else if (mpu1IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT)) 
+//        Serial.println(F("FIFO 2 overflow!"));
+    }
+     // otherwise, check for DMP data ready interrupt (this should happen frequently)
+    else if (mpu1IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT)) 
     {
         updateIMUs();                                             // get fresh quaternion orientations
 

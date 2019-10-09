@@ -143,20 +143,59 @@ void calibrate()
 {
   calibrated = false;
   calibrating = true;
-  updateShock(0);                                       
+  updateShock(0);                                                         // stop the wearer from being shocked while calibrating
+  int calibCount = 0;                                                     // count how many good readings we have
+  Quaternion q_calib_sum = Quaternion(1,0,0,0);                           // the Quaternion sum over which to average
+  float angle_sum = 0;                                                    // the angle sum, display and recording purposes 
 
   lcdPrint(0, "Place hand flat,");
   lcdPrint(1, "elbow on table.");
   Blynk.setProperty(BLYNK_START_CALIB_PIN, "offLabel", "Running");
 
-  q_calib = Quaternion(1,0,0,0);                                          // reset calibration so we don't carry range set with previous calibration into next one
+  q_calib = Quaternion(1,0,0,0);                                          // reset calibration quaternion so we don't carry range set with previous calibration into next one
   extensionAngle = calcExtensionAngle(q_arm, q_hand); 
   Serial.println("Calib extension angle is " + String(extensionAngle));
+
+  while (calibCount < 100)                                                // we want 100 readings over which to average
+  {
+    while (abs(extensionAngle) > 15)                                        // wait until hand is roughly flat
+    { 
+            
+            // reset interrupt flag and get INT_STATUS byte
+      mpu1Interrupt = false;
+      mpu1IntStatus = imu1.getIntStatus();
   
-  while (abs(extensionAngle) > 10)  // wait until hand is roughly flat
-  { 
-          
-          // reset interrupt flag and get INT_STATUS byte
+      // get current FIFO count
+      fifoCount1 = imu1.getFIFOCount();
+      fifoCount2 = imu2.getFIFOCount();
+  
+      // check for overflow (this should never happen unless our code is too inefficient)
+      if ((mpu1IntStatus & _BV(MPU6050_INTERRUPT_FIFO_OFLOW_BIT)) || fifoCount1 >= 1024) {
+          // reset so we can continue cleanly
+          imu1.resetFIFO();
+          imu2.resetFIFO();
+          fifoCount1 = imu1.getFIFOCount();
+          fifoCount2 = imu2.getFIFOCount();
+          Serial.println(F("FIFO overflow!"));
+      // otherwise, check for DMP data ready interrupt (this should happen frequently)
+      } else if (mpu1IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT)) 
+      {
+          updateIMUs();                                                     // update quaternion readings from IMU FIFOs
+          extensionAngle = calcExtensionAngle(q_arm, q_hand);               // update angle 
+      }
+  
+      Serial.println("Hand isn't in calibration range");
+    
+      digitalWrite(EXTERNAL_RED_LED_PIN, 1);                                // turn on red LED to say we're not happy
+      digitalWrite(EXTERNAL_GREEN_LED_PIN, 0);                              // turn off green LED to say we're not happy
+      Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#D3435C");           // change Blynk app's calibrating indicator LED to red
+
+      calibCount = 0;                                                       // restart reading counter
+    }
+
+// happy with range, calculate...
+
+    // reset interrupt flag and get INT_STATUS byte
     mpu1Interrupt = false;
     mpu1IntStatus = imu1.getIntStatus();
 
@@ -175,26 +214,36 @@ void calibrate()
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else if (mpu1IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT)) 
     {
-        updateIMUs();                                                    // update quaternion readings from IMU FIFOs
-        extensionAngle = calcExtensionAngle(q_arm, q_hand);              // update angle 
+        updateIMUs();                                                     // update quaternion readings from IMU FIFOs
+        extensionAngle = calcExtensionAngle(q_arm, q_hand);               // update angle 
     }
 
-    Serial.println("Hand isn't in calibration range");
+    Serial.println("Calibrating...");
   
-    digitalWrite(EXTERNAL_RED_LED_PIN, 1);                              // turn on red LED to say we're not happy
-    Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#D3435C");         // change Blynk app's calibrating indicator LED to red
+    digitalWrite(EXTERNAL_RED_LED_PIN, 0);                                // turn off red LED - we're happy
+    digitalWrite(EXTERNAL_GREEN_LED_PIN, 1);                              // turn on green LED - we're happy
+    Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#43D35C");           // change Blynk app's calibrating indicator LED to green        
+
+    q_calib_sum = q_calib_sum.getSum(q_arm.getProduct(q_hand.getConjugate()));  // calculate rotation of hand frame to arm frame and add to average
+    angle_sum += extensionAngle;
+    calibCount += 1;
   }
 
-  // TODO some more thorough calibration vibe....
+  q_calib = q_calib_sum.getProduct(0.01);
+  q_calib.normalize();
+  Serial.println("w:" + String(q_calib.w) + " x:" + String(q_calib.x) + " y:" + String(q_calib.y) + " z:" + String(q_calib.z));
+  extensionAngle = angle_sum / 100;
 
   Serial.println("Calibrated baseline extension angle is " + String(extensionAngle));
+  
+  appendFile(SD, "/event_log.txt", getDateTimeString() + ", " + "Calibrated: Baseline extension angle is " + String(extensionAngle) + "\n");
         
   digitalWrite(EXTERNAL_RED_LED_PIN, 0);                                  // turn off red LED cause we're happy now
   Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#43D35C");             // change Blynk app's calibrating indicator LED to green
   digitalWrite(EXTERNAL_GREEN_LED_PIN, 1);                                // turn on green LED
-
-  q_calib = q_arm.getProduct(q_hand.getConjugate());                                // calculate rotation of hand frame to arm frame
-  q_calib.normalize();
+//
+//  q_calib = q_arm.getProduct(q_hand.getConjugate());                      // calculate rotation of hand frame to arm frame
+//  q_calib.normalize();
 
   lcdPrint(0, "Calibration done!");
   lcdPrint(1, " ");
