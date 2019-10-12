@@ -114,6 +114,8 @@ float calcExtensionAngle(Quaternion q_arm, Quaternion q_hand)
     if (dot(arm_y, cross_prod) > 0) { 
       sign = -1;
     }
+
+    if (isnan(angle)) { angle = 0; } // fix issue where 0 degrees calculates to NaN 
     
     return sign * angle;  
 }

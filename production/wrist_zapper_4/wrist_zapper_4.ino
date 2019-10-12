@@ -51,10 +51,15 @@ using namespace BLA;                                // BasicLinearAlgebra namesp
 #define BLYNK_SHOCK_MAX_ANGLE_PIN V9
 #define BLYNK_SHOCK_START_INTENSITY_PIN V10
 #define BLYNK_SHOCK_MAX_INTENSITY_PIN V11
+#define TEST_PIN V12
+#define BLYNK_SHOCK_START_IMG_PIN V13
+#define BLYNK_SHOCK_MAX_IMG_PIN V14
 
 #define BLYNK_USE_DIRECT_CONNECT
 /* Comment this out to disable Blynk prints and save space */
 #define BLYNK_PRINT Serial
+
+float testvar = 0;
 
 //// -- GLOBAL VARIABLES -- ////
 
@@ -77,11 +82,12 @@ uint8_t fifoBuffer1[64], fifoBuffer2[64];           // FIFO storage buffer
 volatile bool mpu1Interrupt = false;                // indicates whether MPU1 interrupt pin has gone high
 volatile bool mpu2Interrupt = false;                // indicates whether MPU2 interrupt pin has gone high
 float shockPercentage = 0;
-char shockStartAngle = 30, shockMaxAngle = 60;      // wrist angle range in which to shock wearer (in degrees upward from horizontal)
+char shockStartAngle = 0, shockMaxAngle = 60;      // wrist angle range in which to shock wearer (in degrees upward from horizontal)
 char shockStartIntensity = 0, shockMaxIntensity = 10; // variation in shock intensity over critical range - corresponding to start and max angles
 bool calibrating = false;
 bool calibrated = false;
 bool sdStatus = true;
+String logFileName = "/angle_log.txt";
 
 // orientation / motion vars
 Quaternion q_arm, q_hand, q_calib;                  // [w, x, y, z] quaternion containers for arm, hand IMUs, and calibration between them
@@ -102,98 +108,56 @@ bool slowTicToc = false;
 //// -- FUNCTION PROTOTYPES -- ////
 /* the Arduino IDE doesn't build function prototypes if they take references as arguments, so we have to make them ourselves... */
 
-void appendFile(fs::FS &fs, const char * path, /*const char * */ String message);
+void appendFile(fs::FS &fs, String path, /*const char * */ String message);
 
 
 //// -- TIMER FUNCTIONS -- ////
 
 // In the app, Widget's reading frequency should be set to PUSH. This means
 // that you define how often to send data to Blynk App.
-void fastTimerEvent() // 500ms
+void fastTimerEvent() // 500ms - Battles with more that 10 values per second.
 {
-//    // You can send any value at any time.
-//    // Please don't send more that 10 values per second.
-//    Blynk.virtualWrite(BLYNK_EXT_ANGLE_PIN, extensionAngle);
-//    Blynk.virtualWrite(BLYNK_BATTERY_PIN, getBatteryVoltage());
-//
-//// TODO try map(extensionAngle, 0, 90, 1, 10), then switch (extensionAngle) { case ....
-//
-//    if (extensionAngle >= 90) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 10);
-//    } else if (extensionAngle >= 80) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 9);
-//    } else if (extensionAngle >= 70) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 8);
-//    } else if (extensionAngle >= 60) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 7);
-//    } else if (extensionAngle >= 50) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 6);
-//    } else if (extensionAngle >= 40) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 5);
-//    } else if (extensionAngle >= 30) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 4);
-//    } else if (extensionAngle >= 20) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 3);
-//    } else if (extensionAngle >= 10) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 2);
-//    } else if (extensionAngle > -10) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 1);
-//    } else if (extensionAngle > -20) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 11);
-//    } else if (extensionAngle > -30) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 12);
-//    } else if (extensionAngle > -40) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 13);
-//    } else if (extensionAngle > -50) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 14);
-//    } else if (extensionAngle > -60) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 15);
-//    } else if (extensionAngle > -70) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 16);
-//    } else if (extensionAngle > -80) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 17);
-//    } else if (extensionAngle > -90) {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 18);
-//    } else {
-//      Blynk.virtualWrite(BLYNK_EXT_ANGLE_IMG_PIN, 19);
-//    } 
-//
-//    // Blink the red light if battery is dead
-//    if (getBatteryVoltage() < BATTERY_CUTOFF_VOLTAGE)
-//    {
-//      toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);
-//    } 
-//    else if (externalRedLEDState && !calibrating) // if red LED is on and battery is fine, kill it
-//    {
-//      externalRedLEDState = false;
-//      digitalWrite(EXTERNAL_RED_LED_PIN, 0);
-//    }
+    Blynk.virtualWrite(BLYNK_EXT_ANGLE_PIN, extensionAngle);
+    Blynk.virtualWrite(BLYNK_BATTERY_PIN, getBatteryVoltage());
+
+    setWristImage(BLYNK_EXT_ANGLE_IMG_PIN, extensionAngle);
+
+    // Blink the red light if battery is dead
+    if (getBatteryVoltage() < BATTERY_CUTOFF_VOLTAGE)
+    {
+      toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);
+    } 
+    else if (externalRedLEDState && !calibrating) // if red LED is on and battery is fine, kill it
+    {
+      externalRedLEDState = false;
+      digitalWrite(EXTERNAL_RED_LED_PIN, 0);
+    }
 }
 
 void slowTimerEvent() // 3s
 {
-//  slowTicToc != slowTicToc;
-//  if (!calibrating) // don't overwrite instructions on LCD screen 
-//  {
-//    if (getBatteryVoltage() > BATTERY_CUTOFF_VOLTAGE) // above 10.5V, i.e. 3.5V per cell
-//    {
-//      // TODO what to display generally?
-////      lcdPrint(0, "Angle: " + String(extensionAngle));
-////      lcdPrint(1, "Shock at: " + String(shockPercentage) + "%");
-//    } else {  // battery is dead (less than 3.5V per cell, panic)
-//      lcdPrint(0, "Battery depleted");
-//      lcdPrint(1, "Replace now");
-//    }
-//  }
-//
-//  if (sdStatus) // mircoSD card is working fine
-//  {
-//    Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#43D35C");        // make Blynk app's SD indicator LED green
-//  }
-//  else
-//  {
-//    Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#D3435C");        // make Blynk app's SD indicator LED red
-//  }
+  slowTicToc != slowTicToc;
+  if (!calibrating) // don't overwrite instructions on LCD screen 
+  {
+    if (getBatteryVoltage() > BATTERY_CUTOFF_VOLTAGE) // above 10.5V, i.e. 3.5V per cell
+    {
+      // TODO what to display generally?
+//      lcdPrint(0, "Angle: " + String(extensionAngle));
+//      lcdPrint(1, "Shock at: " + String(shockPercentage) + "%");
+    } else {  // battery is dead (less than 3.5V per cell, panic)
+      lcdPrint(0, "Battery depleted");
+      lcdPrint(1, "Replace now");
+    }
+  }
+
+  if (sdStatus) // mircoSD card is working fine
+  {
+    Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#43D35C");        // make Blynk app's SD indicator LED green
+  }
+  else
+  {
+    Blynk.setProperty(BLYNK_SD_LED_PIN, "color", "#D3435C");        // make Blynk app's SD indicator LED red
+  }
 }
 
 //// -- SETUP -- ////
@@ -207,8 +171,8 @@ void setup()
     Blynk.begin(auth);
 
     // Setup a function to be called every second
-//    fastTimer.setInterval(5000L, fastTimerEvent);
-//    slowTimer.setInterval(3000L, slowTimerEvent);
+    fastTimer.setInterval(500L, fastTimerEvent);
+    slowTimer.setInterval(3000L, slowTimerEvent);
     
     // This will print Blynk Software version to the Terminal Widget when
     // your hardware gets connected to Blynk Server
@@ -220,9 +184,6 @@ void setup()
 
     setSyncInterval(10 * 60); // update real time clock every 10 minutes
 
-    lcdPrint(0, "Device online");
-    lcdPrint(1, "Hello!");
-
     setupGPIO();
     initializeIMUs();
     testIMUConnections();
@@ -232,49 +193,39 @@ void setup()
     
     setupSD();
 
-    if (devStatus != 0 || !dmp1Ready || ! dmp2Ready) { /* startupFailed() TODO turn a red light on or something to show there's a problem */ }
+    if (devStatus != 0 || !dmp1Ready || ! dmp2Ready) 
+    { /* startupFailed() */  
+      lcdPrint(0, "Device error");
+      lcdPrint(1, "Try a reboot"); 
+      toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);   
+      return; 
+    }
 
-    toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);
-    toggleLED(externalGreenLEDState, EXTERNAL_GREEN_LED_PIN);
+    // set wrist angle images in configuration tab of app
+    Blynk.virtualWrite(BLYNK_SHOCK_START_ANGLE_PIN, shockStartAngle);
+    setWristImage(BLYNK_SHOCK_START_IMG_PIN, shockStartAngle);
+    Blynk.virtualWrite(BLYNK_SHOCK_MAX_ANGLE_PIN, shockMaxAngle);
+    setWristImage(BLYNK_SHOCK_MAX_IMG_PIN, shockMaxAngle);
+
+    lcdPrint(0, "Device online");
+    lcdPrint(1, "Hello!");
+    
+    // flash LEDs, we're awake!
+    for (int i = 0; i < 5; i += 1) 
+    {
+      toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);
+      toggleLED(externalGreenLEDState, EXTERNAL_GREEN_LED_PIN);
+      delay(200);
+    }
 
     delay(2000); // let the IMUs settle before calibrating; may need to be longer
-    calibrate();
+
 }
 
 void loop() {
     Blynk.run();
     fastTimer.run(); // Initiates BlynkTimer
     slowTimer.run(); 
-  
-  // Check for new data in the IMU FIFO's
-//  if ( imu1.fifoAvailable() || imu2.fifoAvailable() )
-//  {
-//    imu1.dmpUpdateFifo();
-//    imu2.dmpUpdateFifo();
-//    //printIMUData();
-//    Quaternion q_arm = getQuat(imu1);
-//    Quaternion q_hand = getQuat(imu2);
-//    float extensionAngle = calcExtensionAngle(q_arm, q_hand);
-//    updateShock(extensionAngle);
-//  }
-
-//    // wait for MPU interrupt or extra packet(s) available
-//    while (!mpu1Interrupt && fifoCount1 < packet1Size) {
-//        if (mpu1Interrupt && fifoCount1 < packet1Size) {
-//          // try to get out of the infinite loop 
-//          fifoCount1 = imu1.getFIFOCount();
-//        }  
-//        // other program behavior stuff here
-//        // .
-//        // .
-//        // .
-//        // if you are really paranoid you can frequently test in between other
-//        // stuff to see if mpuInterrupt is true, and if so, "break;" from the
-//        // while() loop to immediately process the MPU data
-//        // .
-//        // .
-//        // .
-//    }
 
     // reset interrupt flag and get INT_STATUS byte
     mpu1Interrupt = false;
@@ -301,7 +252,7 @@ void loop() {
 //      otherwise, check for DMP data ready interrupt (this should happen frequently)
     else if (mpu1IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT) || mpu2IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT) ) 
     {
-        while (fifoCount1 > 10) updateIMUs();                                             // get fresh quaternion orientations
+        while (fifoCount1 > 100 || fifoCount2 > 100) updateIMUs();                                             // get fresh quaternion orientations
 
         extensionAngle = calcExtensionAngle(q_arm, q_hand); 
 
@@ -326,8 +277,8 @@ void loop() {
         }
 
         dateString += getDateTimeString();
-        
-        appendFile(SD, "/angle_log.txt", dateString + ", " + String(extensionAngle) + "\n");
+        //"/angle_log.txt"
+        appendFile(SD, logFileName, dateString + ", " + String(extensionAngle) + "\n");
         
         Serial.println(String(extensionAngle));
         updateShock(extensionAngle);

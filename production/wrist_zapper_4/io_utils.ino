@@ -55,7 +55,7 @@ void setupSD(void)
  *  - path: the absolute path to the file to write to
  *  - message: the string to be appended
  */
-void appendFile(fs::FS &fs, const char * path, /*const char * */ String message)
+void appendFile(fs::FS &fs, String path, /*const char * */ String message)
 {
 //    Serial.printf("Appending to file: %s\n", path);
     bool flag = true;                                                   // assume all is well
@@ -122,8 +122,9 @@ int toDac(int percentage)
   float minVoltage = 0.4; // threshold voltage of BJT
   float maxVoltage = 3.12; // max produceable voltage
   int dacMaxVal = 255;
-float outputVoltage = 0.6;
-//  float outputVoltage = ((percentage * 0.01) * (maxVoltage - minVoltage)) + minVoltage; // calculate the output voltage we want
+//float outputVoltage = testvar * 0.1;
+//Serial.println(outputVoltage);
+  float outputVoltage = ((percentage * 0.01) * (maxVoltage - minVoltage)) + minVoltage; // calculate the output voltage we want
   int dacVal = round(outputVoltage * (255 / maxVoltage)); // convert required voltage to a DAC value
   
   return dacVal;
@@ -144,19 +145,19 @@ void updateShock(float extensionAngle)
   int shockIntensityRange = shockMaxIntensity - shockStartIntensity;
   float intensity = 0;
 
-  if (calibrating || extensionAngle < shockStartAngle) // don't shock if we're out of range or calibrating
+  if (calibrating || extensionAngle < shockStartAngle || !calibrated) // don't shock if we're out of range or are calibrating or haven't calibrated yet
   {
 //      ledcWrite(STIM_PIN,0);
       intensity = 0;
       dacWrite(STIM_PIN,0);
-      Serial.println("Shock off");
+//      Serial.println("Shock off");
   }
   else if (extensionAngle > shockStartAngle + shockAngleRange) // max intensity
   { 
     intensity = shockStartIntensity + shockIntensityRange;
     int j = toDac(intensity);
     dacWrite(0,j);
-    Serial.println("Shocking at max intensity, " + String(intensity) + "%!");
+//    Serial.println("Shocking at max intensity, " + String(intensity) + "%!");
   } 
   else // normal shock range
   {
@@ -243,6 +244,14 @@ BLYNK_CONNECTED()
   Blynk.virtualWrite(BLYNK_SHOCK_MAX_INTENSITY_PIN, shockMaxIntensity);
 
   rtc.begin(); // sync time with Blynk real time clock
+
+  // set wrist angle images and sliders in configuration tab of app
+  Blynk.virtualWrite(BLYNK_SHOCK_START_ANGLE_PIN, shockStartAngle);
+  setWristImage(BLYNK_SHOCK_START_IMG_PIN, shockStartAngle);
+  Blynk.virtualWrite(BLYNK_SHOCK_MAX_ANGLE_PIN, shockMaxAngle);
+  setWristImage(BLYNK_SHOCK_MAX_IMG_PIN, shockMaxAngle);
+  Blynk.virtualWrite(BLYNK_SHOCK_START_INTENSITY_PIN, shockStartIntensity);
+  Blynk.virtualWrite(BLYNK_SHOCK_MAX_INTENSITY_PIN, shockMaxIntensity);
 }
 
 /*
@@ -252,13 +261,13 @@ BLYNK_CONNECTED()
  */
 BLYNK_WRITE(BLYNK_START_CALIB_PIN) 
 {
-  if (param.asInt() == 1) // start calibration on down press of calibration button
+  if (param.asInt() == 1 && !calibrating) // start calibration on down press of calibration button
   {
     calibLED.on();
     Serial.println("Calibration requested");
     calibrate();
     calibLED.off();
-  }
+  } 
 }
 
 /*
@@ -269,6 +278,12 @@ BLYNK_WRITE(BLYNK_START_CALIB_PIN)
 BLYNK_WRITE(BLYNK_SHOCK_START_ANGLE_PIN) 
 {
   shockStartAngle = param.asInt();
+  if (shockMaxAngle < shockStartAngle) // make sure max angle is never less than start angle
+  {
+    shockStartAngle = shockMaxAngle;
+    Blynk.virtualWrite(BLYNK_SHOCK_START_ANGLE_PIN, shockStartAngle);
+  }
+  setWristImage(BLYNK_SHOCK_START_IMG_PIN, shockStartAngle);
 }
 
 /*
@@ -279,6 +294,12 @@ BLYNK_WRITE(BLYNK_SHOCK_START_ANGLE_PIN)
 BLYNK_WRITE(BLYNK_SHOCK_MAX_ANGLE_PIN) 
 {
   shockMaxAngle = param.asInt();
+  if (shockMaxAngle < shockStartAngle) // make sure max angle is never less than start angle
+  {
+    shockMaxAngle = shockStartAngle;
+    Blynk.virtualWrite(BLYNK_SHOCK_MAX_ANGLE_PIN, shockMaxAngle);
+  }
+  setWristImage(BLYNK_SHOCK_MAX_IMG_PIN, shockMaxAngle);
 }
 
 /*
@@ -289,6 +310,11 @@ BLYNK_WRITE(BLYNK_SHOCK_MAX_ANGLE_PIN)
 BLYNK_WRITE(BLYNK_SHOCK_START_INTENSITY_PIN) 
 {
   shockStartIntensity = param.asInt();
+  if (shockMaxIntensity < shockStartIntensity) // make sure max intensity is never less than start intensity
+  {
+    shockStartIntensity = shockMaxIntensity;
+    Blynk.virtualWrite(BLYNK_SHOCK_START_INTENSITY_PIN, shockStartIntensity);
+  }
 }
 
 /*
@@ -299,6 +325,29 @@ BLYNK_WRITE(BLYNK_SHOCK_START_INTENSITY_PIN)
 BLYNK_WRITE(BLYNK_SHOCK_MAX_INTENSITY_PIN) 
 {
   shockMaxIntensity = param.asInt();
+  if (shockMaxIntensity < shockStartIntensity) // make sure max intensity is never less than start intensity
+  {
+    shockMaxIntensity = shockStartIntensity;
+    Blynk.virtualWrite(BLYNK_SHOCK_MAX_INTENSITY_PIN, shockMaxIntensity);
+  }
+}
+
+BLYNK_WRITE(TEST_PIN) 
+{
+//  testvar = param.asInt();
+//  toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);
+//
+//    float minVoltage = 0.4; // threshold voltage of BJT
+//  float maxVoltage = 3.12; // max produceable voltage
+//  int dacMaxVal = 255;
+//float outputVoltage = testvar * 0.1;
+//Serial.println(outputVoltage);
+////  float outputVoltage = ((percentage * 0.01) * (maxVoltage - minVoltage)) + minVoltage; // calculate the output voltage we want
+//  int dacVal = round(outputVoltage * (255 / maxVoltage)); // convert required voltage to a DAC value
+//  
+
+imu1.resetFIFO();
+logFileName = param.asStr();
 }
 
 /*
@@ -309,4 +358,49 @@ BLYNK_WRITE(BLYNK_SHOCK_MAX_INTENSITY_PIN)
 String getDateTimeString()
 {
   return String(day()) + "/" + month() + "/" + year() + ", " + String(hour()) + ":" + minute() + ":" + second();
+}
+
+void setWristImage(uint8_t pin, float angle)
+{
+
+  // TODO try map(extensionAngle, 0, 90, 1, 10), then switch (extensionAngle) { case ....
+    if (angle >= 90) {
+      Blynk.virtualWrite(pin, 10);
+    } else if (angle >= 80) {
+      Blynk.virtualWrite(pin, 9);
+    } else if (angle >= 70) {
+      Blynk.virtualWrite(pin, 8);
+    } else if (angle >= 60) {
+      Blynk.virtualWrite(pin, 7);
+    } else if (angle >= 50) {
+      Blynk.virtualWrite(pin, 6);
+    } else if (angle >= 40) {
+      Blynk.virtualWrite(pin, 5);
+    } else if (angle >= 30) {
+      Blynk.virtualWrite(pin, 4);
+    } else if (angle >= 20) {
+      Blynk.virtualWrite(pin, 3);
+    } else if (angle >= 10) {
+      Blynk.virtualWrite(pin, 2);
+    } else if (angle > -10) {
+      Blynk.virtualWrite(pin, 1);
+    } else if (angle > -20) {
+      Blynk.virtualWrite(pin, 11);
+    } else if (angle > -30) {
+      Blynk.virtualWrite(pin, 12);
+    } else if (angle > -40) {
+      Blynk.virtualWrite(pin, 13);
+    } else if (angle > -50) {
+      Blynk.virtualWrite(pin, 14);
+    } else if (angle > -60) {
+      Blynk.virtualWrite(pin, 15);
+    } else if (angle > -70) {
+      Blynk.virtualWrite(pin, 16);
+    } else if (angle > -80) {
+      Blynk.virtualWrite(pin, 17);
+    } else if (angle > -90) {
+      Blynk.virtualWrite(pin, 18);
+    } else {
+      Blynk.virtualWrite(pin, 19);
+    } 
 }
