@@ -88,59 +88,13 @@ void dmp2DataReady() {
     mpu2Interrupt = true;
 }
 
-//void printIMUData(MPU6050 &imu1, MPU6050 &imu2)
-//{          
-//    imu1.dmpGetQuaternion(&q_arm, fifoBuffer1);
-//    imu2.dmpGetQuaternion(&q_hand, fifoBuffer2);
-//
-//    float extensionAngle = calcExtensionAngle(q_arm, q_hand);
-//    Serial.println(String(extensionAngle));
-//
-//    int stimRangeStart = 30; // start stimulus at this point
-//    int stimRange = 30; // range over which intensity varies
-//    float stimIntensityStart = 0; // percentage intensity at stimRangeStart
-//    float stimIntensityRange = 2; // increase in percentage intensity from stimRangeStart to end of stimRange
-//
-//    // don't want the wearer getting inadvertantly shocked mid-calibration
-//    if (calibrated && (extensionAngle > stimRangeStart + stimRange)) // max intensity
-//    { 
-//      float intensity = stimIntensityStart + stimIntensityRange;
-//      int j = toDac(intensity);
-//      dacWrite(0,j);
-//      Serial.println("Shocking at max intensity, " + String(intensity) + "%!");
-//    } 
-//    else if (calibrated && (extensionAngle > stimRangeStart)) 
-//    {
-//      float intensity = stimIntensityStart + (extensionAngle - stimRangeStart)/(stimRange / stimIntensityRange);
-////      for(int i=0;i<100;i+=10) {
-//      int j = toDac(intensity);
-//      dacWrite(0,j);
-//      Serial.println("Shocking at " + String(intensity) + "%!");
-////        delay(2000);            
-////      } 
-//    } else {
-//        dacWrite(0,0);
-//        Serial.println("Shock off");
-//    }
-    
-//    String imustring = String(q_arm.a) + "," + String(q_arm.b) + "," + String(q_arm.c) + "," + String(q_arm.d) + "," + String(q_hand.a) + "," + String(q_hand.b) + "," + String(q_hand.c) + "," + String(q_hand.d) + "\n";
-    
-//    appendFile(SD, "/qlog.txt", imustring);
-//    appendFile(SD, "/alog.txt", String(extensionAngle) + "\n");
-    
-//    SerialPort.println(String(q_arm.a) + "," + String(q_arm.b) + "," + String(q_arm.c) + "," + String(q_arm.d) + "," + String(q_hand.a) + "," + String(q_hand.b) + "," + String(q_hand.c) + "," + String(q_hand.d) );
-    
-//  SerialPort.println("Q: " + String(q0, 4) + ", " +
-//                    String(q1, 4) + ", " + String(q2, 4) + 
-//                    ", " + String(q3, 4));
-//  SerialPort.println("R/P/Y: " + String(imu.roll) + ", "
-//            + String(imu.pitch) + ", " + String(imu.yaw));
-//  SerialPort.println("Time: " + String(imu.time) + " ms");
-//  SerialPort.println();
-//}
-
 void calibrate() 
 {
+  if (devStatus != 0 || !dmp1Ready || ! dmp2Ready) 
+  { /* startupFailed() */  
+    return;
+  }
+  
   calibrated = false;
   calibrating = true;
   updateShock(0);                                                         // stop the wearer from being shocked while calibrating

@@ -357,6 +357,17 @@ imu1.resetFIFO();
 logFileName = param.asStr();
 }
 
+BLYNK_READ(BLYNK_BATTERY_PIN) 
+{
+  Blynk.virtualWrite(BLYNK_BATTERY_PIN, getBatteryVoltage());
+
+  if (getBatteryVoltage() < BATTERY_CUTOFF_VOLTAGE) // below 10.5V, i.e. 3.5V per cell, battery dead
+  {
+    lcdPrint(0, "Battery depleted");
+    lcdPrint(1, "Replace now");
+  }
+}
+
 /*
  *  getDateTimeString
  *  

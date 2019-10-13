@@ -118,7 +118,6 @@ void appendFile(fs::FS &fs, String path, /*const char * */ String message);
 void fastTimerEvent() // 500ms - Battles with more that 10 values per second.
 {
     Blynk.virtualWrite(BLYNK_EXT_ANGLE_PIN, extensionAngle);
-    Blynk.virtualWrite(BLYNK_BATTERY_PIN, getBatteryVoltage());
 
     setWristImage(BLYNK_EXT_ANGLE_IMG_PIN, extensionAngle);
 
@@ -141,8 +140,14 @@ void slowTimerEvent() // 10s
   {
     if (getBatteryVoltage() > BATTERY_CUTOFF_VOLTAGE) // above 10.5V, i.e. 3.5V per cell
     {
-      lcdPrint(0, "Device online");
-      lcdPrint(1, "Hello!");
+      if (devStatus != 0 || !dmp1Ready || ! dmp2Ready) 
+      { /* startupFailed() */  
+        lcdPrint(0, "Device error");
+        lcdPrint(1, "Try a reboot"); 
+      } else {
+        lcdPrint(0, "Device online");
+        lcdPrint(1, "Hello!");
+      }
     } else {  // battery is dead (less than 3.5V per cell, panic)
       lcdPrint(0, "Battery depleted");
       lcdPrint(1, "Replace now");
@@ -218,14 +223,18 @@ void setup()
       delay(200);
     }
 
-    delay(2000); // let the IMUs settle before calibrating; may need to be longer
-
+    delay(2000); // let things settle 
 }
 
 void loop() {
     Blynk.run();
     fastTimer.run(); // Initiates BlynkTimer
     slowTimer.run(); 
+
+    if (devStatus != 0 || !dmp1Ready || ! dmp2Ready) 
+    { /* startupFailed() */  
+      return;
+    }
 
     // reset interrupt flag and get INT_STATUS byte
     mpu1Interrupt = false;
@@ -238,16 +247,29 @@ void loop() {
     fifoCount1 = imu1.getFIFOCount();
     fifoCount2 = imu2.getFIFOCount();
 
+    bool overflow = false;
+
     // check for overflow (this should never happen unless our code is too inefficient)
-    if ((mpu1IntStatus & _BV(MPU6050_INTERRUPT_FIFO_OFLOW_BIT)) || fifoCount1 >= 1024) {
+    if ((mpu1IntStatus & _BV(MPU6050_INTERRUPT_FIFO_OFLOW_BIT)) || fifoCount1 >= 1024) 
+    {
         // reset so we can continue cleanly
         imu1.resetFIFO();
         Serial.println(F("FIFO 1 overflow!"));
+         overflow = true;
+    }
     
-    } else if ((mpu2IntStatus & _BV(MPU6050_INTERRUPT_FIFO_OFLOW_BIT)) || fifoCount2 >= 1024) {
+    if ((mpu2IntStatus & _BV(MPU6050_INTERRUPT_FIFO_OFLOW_BIT)) || fifoCount2 >= 1024) 
+    {
         // reset so we can continue cleanly
         imu2.resetFIFO();
         Serial.println(F("FIFO 2 overflow!"));
+        overflow = true;
+    }
+    
+    if (overflow) 
+    {
+      overflow = false;
+      return;
     }
 //      otherwise, check for DMP data ready interrupt (this should happen frequently)
     else if (mpu1IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT) || mpu2IntStatus & _BV(MPU6050_INTERRUPT_DMP_INT_BIT) ) 
