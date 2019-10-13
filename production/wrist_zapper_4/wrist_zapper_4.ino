@@ -11,7 +11,7 @@
 
 //// -- INCLUDES -- ////
 
-#include "BlynkSimpleEsp32_BLE.h"
+#include "BlynkSimpleEsp32_BLE.h"                   // https://github.com/blynkkk/blynk-library
 #include "BLEDevice.h"
 #include "BLEServer.h"
 
@@ -82,7 +82,7 @@ uint8_t fifoBuffer1[64], fifoBuffer2[64];           // FIFO storage buffer
 volatile bool mpu1Interrupt = false;                // indicates whether MPU1 interrupt pin has gone high
 volatile bool mpu2Interrupt = false;                // indicates whether MPU2 interrupt pin has gone high
 float shockPercentage = 0;
-char shockStartAngle = 0, shockMaxAngle = 60;      // wrist angle range in which to shock wearer (in degrees upward from horizontal)
+char shockStartAngle = 30, shockMaxAngle = 60;      // wrist angle range in which to shock wearer (in degrees upward from horizontal)
 char shockStartIntensity = 0, shockMaxIntensity = 10; // variation in shock intensity over critical range - corresponding to start and max angles
 bool calibrating = false;
 bool calibrated = false;
@@ -134,16 +134,15 @@ void fastTimerEvent() // 500ms - Battles with more that 10 values per second.
     }
 }
 
-void slowTimerEvent() // 3s
+void slowTimerEvent() // 10s
 {
   slowTicToc != slowTicToc;
   if (!calibrating) // don't overwrite instructions on LCD screen 
   {
     if (getBatteryVoltage() > BATTERY_CUTOFF_VOLTAGE) // above 10.5V, i.e. 3.5V per cell
     {
-      // TODO what to display generally?
-//      lcdPrint(0, "Angle: " + String(extensionAngle));
-//      lcdPrint(1, "Shock at: " + String(shockPercentage) + "%");
+      lcdPrint(0, "Device online");
+      lcdPrint(1, "Hello!");
     } else {  // battery is dead (less than 3.5V per cell, panic)
       lcdPrint(0, "Battery depleted");
       lcdPrint(1, "Replace now");
@@ -172,7 +171,7 @@ void setup()
 
     // Setup a function to be called every second
     fastTimer.setInterval(500L, fastTimerEvent);
-    slowTimer.setInterval(3000L, slowTimerEvent);
+    slowTimer.setInterval(10000L, slowTimerEvent);
     
     // This will print Blynk Software version to the Terminal Widget when
     // your hardware gets connected to Blynk Server
@@ -198,17 +197,18 @@ void setup()
       lcdPrint(0, "Device error");
       lcdPrint(1, "Try a reboot"); 
       toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);   
-      return; 
+    } 
+    else // happy days
+    {
+      lcdPrint(0, "Device online");
+      lcdPrint(1, "Hello!");
     }
 
-    // set wrist angle images in configuration tab of app
-    Blynk.virtualWrite(BLYNK_SHOCK_START_ANGLE_PIN, shockStartAngle);
-    setWristImage(BLYNK_SHOCK_START_IMG_PIN, shockStartAngle);
-    Blynk.virtualWrite(BLYNK_SHOCK_MAX_ANGLE_PIN, shockMaxAngle);
-    setWristImage(BLYNK_SHOCK_MAX_IMG_PIN, shockMaxAngle);
-
-    lcdPrint(0, "Device online");
-    lcdPrint(1, "Hello!");
+//    // set wrist angle images in configuration tab of app
+//    Blynk.virtualWrite(BLYNK_SHOCK_START_ANGLE_PIN, shockStartAngle);
+//    setWristImage(BLYNK_SHOCK_START_IMG_PIN, shockStartAngle);
+//    Blynk.virtualWrite(BLYNK_SHOCK_MAX_ANGLE_PIN, shockMaxAngle);
+//    setWristImage(BLYNK_SHOCK_MAX_IMG_PIN, shockMaxAngle);
     
     // flash LEDs, we're awake!
     for (int i = 0; i < 5; i += 1) 

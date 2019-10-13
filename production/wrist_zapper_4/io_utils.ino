@@ -252,6 +252,13 @@ BLYNK_CONNECTED()
   setWristImage(BLYNK_SHOCK_MAX_IMG_PIN, shockMaxAngle);
   Blynk.virtualWrite(BLYNK_SHOCK_START_INTENSITY_PIN, shockStartIntensity);
   Blynk.virtualWrite(BLYNK_SHOCK_MAX_INTENSITY_PIN, shockMaxIntensity);
+
+  if (devStatus != 0 || !dmp1Ready || ! dmp2Ready) 
+    { /* startupFailed() */  
+      lcdPrint(0, "Device error");
+      lcdPrint(1, "Try a reboot"); 
+      toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);   
+    }
 }
 
 /*
@@ -278,7 +285,7 @@ BLYNK_WRITE(BLYNK_START_CALIB_PIN)
 BLYNK_WRITE(BLYNK_SHOCK_START_ANGLE_PIN) 
 {
   shockStartAngle = param.asInt();
-  if (shockMaxAngle < shockStartAngle) // make sure max angle is never less than start angle
+  if (shockStartAngle > shockMaxAngle) // make sure max angle is never less than start angle
   {
     shockStartAngle = shockMaxAngle;
     Blynk.virtualWrite(BLYNK_SHOCK_START_ANGLE_PIN, shockStartAngle);
