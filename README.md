@@ -4,3 +4,6 @@ A portable wrist pose controlled electrocutaneous stimulator. Part of an undergr
 Operates on an ESP32, and communicates with a companion app built on Blynk via BLE.
 
 ![The Wrist Zapper](https://github.com/devsticks/wrist-zapper/raw/master/images/device_top.jpg "The Wrist Zapper")
+
+The following is a basic system diagram showing the various elements of the design and how they relate to one another:
+![System Diagram](https://github.com/devsticks/wrist-zapper/raw/master/images/wiring_flow.jpg "System diagram")
