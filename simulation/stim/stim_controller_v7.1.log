@@ -2,20 +2,20 @@ Circuit: * /Volumes/GoogleDrive/My Drive/D/Documents/2019/EEE4022S/wrist-zapper/
 
 Direct Newton iteration for .op point succeeded.
 
-Date: Tue Oct  1 18:59:20 2019
-Total elapsed time: 0.902 seconds.
+Date: Tue Oct 15 12:57:06 2019
+Total elapsed time: 1.220 seconds.
 
 tnom = 27
 temp = 27
 method = modified trap
-totiter = 2109
-traniter = 2096
+totiter = 2096
+traniter = 2082
 tranpoints = 1042
 accept = 1042
 rejected = 0
-matrix size = 30
-fillins = 10
+matrix size = 22
+fillins = 6
 solver = Normal
-Matrix Compiler1: 2788 object code size  0.6/0.3/[0.2]
+Matrix Compiler1: 1836 object code size  0.5/0.5/[0.1]
 Matrix Compiler2: off
 

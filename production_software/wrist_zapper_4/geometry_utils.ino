@@ -1,7 +1,7 @@
 /* 
  *  @ description: A set of utility functions for various 3D geometry operations
  *  @ author: Devin Stickells, https://github.com/devsticks
- *  @ required: BasicLinearAlgebra.h, Quaternion.h
+ *  @ required: BasicLinearAlgebra.h, helper_3dmath.h
  */
 
 /* 

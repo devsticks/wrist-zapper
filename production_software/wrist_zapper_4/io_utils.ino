@@ -1,7 +1,6 @@
 /* 
  *  @ description: A set of utility functions for GPIO and interfacing with an SD card
  *  @ author: Devin Stickells, https://github.com/devsticks
- *  @ required: 
  */
 
 /*
@@ -32,7 +31,7 @@ void setupGPIO(void)
 }  
 
 /* 
- *  Mount the card
+ *  Mount the SD card
  */
 void setupSD(void)
 {
@@ -47,8 +46,11 @@ void setupSD(void)
 }
 
 /*
- *  Appends a line of text to a file specified in path parameter.
- *  Will create the file if it doesn't exist.
+ *  appendFile
+ *  
+ *  Description:
+ *  - Appends a line of text to a file specified in path parameter.
+ *  - Will create the file if it doesn't exist.
  *  
  *  Params:
  *  - &fs: reference to an SD (or other) card object
@@ -97,26 +99,16 @@ void appendFile(fs::FS &fs, String path, /*const char * */ String message)
     } 
 }
 
-//void saveToSD(void)
-//{
-//    float q1w = imu1.calcQuat(imu1.qw);
-//    float q1x = imu1.calcQuat(imu1.qx);
-//    float q1y = imu1.calcQuat(imu1.qy);
-//    float q1z = imu1.calcQuat(imu1.qz);
-//
-//    float q2w = imu2.calcQuat(imu2.qw);
-//    float q2x = imu2.calcQuat(imu2.qx);
-//    float q2y = imu2.calcQuat(imu2.qy);
-//    float q2z = imu2.calcQuat(imu2.qz);
-//    
-//    //String headerString = "ax1,ay1,az1,gx1,gy1,gz1,mx1,my1,mz1,ax2,ay2,az2,gx2,gy2,gz2,mx2,my2,mz2";
-//    String IMUString = String(q1w) + "," + String(q1x) + "," + String(q1y) + "," + String(q1z) + "," + String(q2w) + "," + String(q2x) + "," + String(q2y) + "," + String(q2z) + "\n";
-//    //const char * IMU1Char = (const char *)IMU1String;
-//    //appendFile(SD, "/log.txt", headerString + "\n");
-//    appendFile(SD, "/qlog.txt", IMUString);
-//}
-
-// convert a percentage of max current to a DAC value
+// 
+/*
+ *  toDac
+ *  
+ *  Description:
+ *  - converts a percentage of the max output current to a DAC value
+ *  
+ *  Params:
+ *  - percentage: an integer between 0 and 100 to be converted to a voltage between 0.4 and and 3.1 - controls the taps on the BJT in the stimulus control circuitry
+ */
 int toDac(int percentage)
 {
   float minVoltage = 0.4; // threshold voltage of BJT
@@ -131,12 +123,17 @@ int toDac(int percentage)
 }
 
 /*
+ *  updateShock
+ *  
+ *  Description:
+ *  - Updates the shock being experienced by the wearer depending on the extension angle of their wrist and the device configuration
  * 
  *  Params:
  *  - int shockStartAngle = 30; // start stimulus at this point
  *  - int shockAngleRange = 30; // range over which intensity varies
  *  - float shockStartIntensity = 0; // percentage intensity at shockStartAngle
  *  - float shockIntensityRange = 2; // increase in percentage intensity from shockStartAngle to end of shockAngleRange
+ *  
  */
 void updateShock(float extensionAngle)
 {
@@ -147,7 +144,7 @@ void updateShock(float extensionAngle)
 
   if (calibrating || extensionAngle < shockStartAngle || !calibrated) // don't shock if we're out of range or are calibrating or haven't calibrated yet
   {
-//      ledcWrite(STIM_PIN,0);
+//      ledcWrite(STIM_PIN,0); // Testing using PWM
       intensity = 0;
       dacWrite(STIM_PIN,0);
 //      Serial.println("Shock off");
@@ -162,23 +159,24 @@ void updateShock(float extensionAngle)
   else // normal shock range
   {
     intensity = shockStartIntensity + (extensionAngle - shockStartAngle)/(shockAngleRange / shockIntensityRange);
-//      for(int i=0;i<100;i+=10) {
     int j = toDac(intensity);
-//    int j = intensity * 8192 * 0.01;
 
+//// Testing using PWM
+//    int j = intensity * 8192 * 0.01;
 //    ledcWrite(STIM_PIN, j);
 
     dacWrite(STIM_PIN,j);
 //    Serial.println("Shocking at " + String(intensity) + "%!");
-//        delay(2000);            
-//      } 
   } 
 
   shockPercentage = intensity;
 }
 
 /* 
- *  Toggle the state of an LED pin given it's state variable and pin number
+ *  toggleLED
+ *  
+ *  Description:
+ *  - Toggles the state of an LED pin given a reference to it's state variable and its pin number
  */
 void toggleLED(bool &ledState, int pin) 
 {
@@ -206,10 +204,14 @@ float getBatteryVoltage()
 /* 
  *  getBatteryPercentage
  *  
+ *  Description:
+ *  - Returns an estimate of the battery's percentage charge.  
+ *  - Assumes a linear discharge down to 3.5V per cell. This isn't true.
+ *  - The battery indicator on the app circumnavigates this problem by just showing the actual battery voltage on a slider, where 10.5 is dead and 12 is full.
  */
 float getBatteryPercentage()
 {
-  return 100 * ((getBatteryVoltage() - 10.5) / 1.5); // TODO get the actual battery percentage...
+  return 100 * ((getBatteryVoltage() - 10.5) / 1.5); 
 }
 
 /*
@@ -339,24 +341,11 @@ BLYNK_WRITE(BLYNK_SHOCK_MAX_INTENSITY_PIN)
   }
 }
 
-BLYNK_WRITE(TEST_PIN) 
-{
-//  testvar = param.asInt();
-//  toggleLED(externalRedLEDState, EXTERNAL_RED_LED_PIN);
-//
-//    float minVoltage = 0.4; // threshold voltage of BJT
-//  float maxVoltage = 3.12; // max produceable voltage
-//  int dacMaxVal = 255;
-//float outputVoltage = testvar * 0.1;
-//Serial.println(outputVoltage);
-////  float outputVoltage = ((percentage * 0.01) * (maxVoltage - minVoltage)) + minVoltage; // calculate the output voltage we want
-//  int dacVal = round(outputVoltage * (255 / maxVoltage)); // convert required voltage to a DAC value
-//  
-
-imu1.resetFIFO();
-logFileName = param.asStr();
-}
-
+/*
+ *  BLYNK_READ - Read the battery voltage
+ *  
+ *  @ description: reads and returns the battery voltage when requested to by the Blynk app
+ */
 BLYNK_READ(BLYNK_BATTERY_PIN) 
 {
   Blynk.virtualWrite(BLYNK_BATTERY_PIN, getBatteryVoltage());
@@ -378,10 +367,13 @@ String getDateTimeString()
   return String(day()) + "/" + month() + "/" + year() + ", " + String(hour()) + ":" + minute() + ":" + second();
 }
 
+/*
+ *  setWristImage
+ *  
+ *  @ description: utility function to update the relevant wrist angle image in the app when needed
+ */
 void setWristImage(uint8_t pin, float angle)
 {
-
-  // TODO try map(extensionAngle, 0, 90, 1, 10), then switch (extensionAngle) { case ....
     if (angle >= 90) {
       Blynk.virtualWrite(pin, 10);
     } else if (angle >= 80) {

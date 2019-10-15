@@ -1,7 +1,11 @@
 /* 
- *  A set of utility functions for interfacing with the MPU9250
+ *  @ description: A set of utility functions for interfacing with the MPU9250
+ *  @ author: Devin Stickells, https://github.com/devsticks
  */
 
+/* 
+ *  A set of utility functions for interfacing with the MPU9250
+ */
 void initializeIMUs()//(MPU6050 &imu1, MPU6050 &imu2)
 {
       Serial.println(F("Initializing I2C devices..."));
@@ -9,7 +13,13 @@ void initializeIMUs()//(MPU6050 &imu1, MPU6050 &imu2)
       imu2.initialize();
 }
 
-// verify connection
+/*
+ *  testIMUConnections
+ *  
+ *  Description:
+ *  - tests the connections to the two IMUS
+ *  - changes the global device status flags if there is an issue
+ */
 void testIMUConnections(void) 
 {
     Serial.println(F("Testing device 1 connections..."));
@@ -19,22 +29,25 @@ void testIMUConnections(void)
     Serial.println(imu2.testConnection() ? F("MPU6050 2 connection successful") : F("MPU6050 2 connection failed"));
 }
 
-/* 
- *  Start the IMU, it's DMP system, and set the enabled features and read speed
+/*
+ *  setupIMU
+ *  
+ *  Description:
+ *  - Starts the IMU, it's DMP system, and set the enabled features and read speed
+ *  
+ *  Params:
+ *  - imu: an MPU6050 object
+ *  - mpuIntStatus: reference to the status bit of the imu interrupt register
+ *  - dmpReady: boolean indicating whether the Digital Motion Processor onboard the IMU is properly initialized
+ *  - packetSize: the size of the imu fifo stack
+ *  - imuName: used to reference the IMU when printing messages to Serial
  */
+
 uint8_t setupIMU(MPU6050 imu, uint8_t &mpuIntStatus, bool &dmpReady, uint16_t &packetSize, String imuName)
 {
     // load and configure the DMP
     Serial.println(F("Initializing DMP on " + imuName));
     devStatus = imu.dmpInitialize();
-
-    // supply your own gyro offsets here, scaled for min sensitivity
-//    imu.setXGyroOffset(51);
-//    imu.setYGyroOffset(8);
-//    imu.setZGyroOffset(21);
-//    imu.setXAccelOffset(1150); 
-//    imu.setYAccelOffset(-50); 
-//    imu.setZAccelOffset(1060); 
     
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
@@ -69,17 +82,6 @@ uint8_t setupIMU(MPU6050 imu, uint8_t &mpuIntStatus, bool &dmpReady, uint16_t &p
     return devStatus;
 }
 
-//Quaternion getQuat(MPU6050 imu)
-//{
-//    Quaternion q;
-//    q.a = imu.calcQuat(imu.qw);
-//    q.b = imu.calcQuat(imu.qx);
-//    q.c = imu.calcQuat(imu.qy);
-//    q.d = imu.calcQuat(imu.qz);
-//
-//    return q;
-//}
-
 void dmp1DataReady() {
     mpu1Interrupt = true;
 }
@@ -88,6 +90,15 @@ void dmp2DataReady() {
     mpu2Interrupt = true;
 }
 
+
+/*
+ *  calibrate
+ *  
+ *  Description:
+ *  - initializes the system angle calibration routine and walks the user through the process on the app 
+ *  - waits until the user has their arm roughly straight down, then does the same in the horizontal position
+ *  - averages the quaternion orientations of the hand and arm imus during those periods in order to calibrate future readings 
+ */
 void calibrate() 
 {
   if (devStatus != 0 || !dmp1Ready || ! dmp2Ready) 
@@ -103,21 +114,26 @@ void calibrate()
   Quaternion q_calib_sum_horz = Quaternion(1,0,0,0);                      // the Quaternion sum over which to average the horizontal calibration
   float angle_sum = 0;                                                    // the angle sum, display and recording purposes
 
+  int vert_calibs = 60;                                                   // number of readings to incorporate in the calibration calculation
+  int horz_calibs = 100;
+
   q_calib = Quaternion(1,0,0,0);                                          // reset calibration quaternion so we don't carry range set with previous calibration into next one
   extensionAngle = calcExtensionAngle(q_arm, q_hand); 
   Serial.println("Calib extension angle is " + String(extensionAngle));
+
+// Pose 1:
 
   lcdPrint(0, "Arm and hand");
   lcdPrint(1, "straight down.");
   
   Blynk.setProperty(BLYNK_START_CALIB_PIN, "offLabel", "Running");  
 
-  while (calibCount < 60)                                                // we want 150 readings over which to average
+  while (calibCount < vert_calibs)                                                // we want 60 readings over which to average the vertical calibratino
   {
-    while (/*(abs(100*q_hand.y - 71) > 5) ||*/ (abs(100*q_arm.y - 71) > 5) || (abs(100*(q_arm.x + q_arm.z)) > 10))   // wait until hand is roughly flat relative to arm and arm vertically downwards
+    while ((abs(100*q_arm.y - 71) > 5) || (abs(100*(q_arm.x + q_arm.z)) > 10))   // wait until hand is roughly flat relative to arm and arm vertically downwards
     { 
-            
-            // reset interrupt flag and get INT_STATUS byte
+    // update the IMU readings:        
+      // reset interrupt flag and get INT_STATUS byte
       mpu1Interrupt = false;
       mpu1IntStatus = imu1.getIntStatus();
   
@@ -186,6 +202,8 @@ void calibrate()
     calibCount += 1;
   }
 
+// Pose 2:
+
   lcdPrint(0, "Place hand flat,");
   lcdPrint(1, "elbow on table.");
 
@@ -200,12 +218,12 @@ void calibrate()
   float arm_pitch = arm_ypr[1] * 180/M_PI;
   float arm_roll = arm_ypr[2] * 180/M_PI;
 
-  while (calibCount < 100)                                                // we want 100 readings over which to average
+  while (calibCount < vert_calibs)                                                    // we want 100 readings over which to average the flat calibration pose
   {   
     while (abs(extensionAngle) > 15 || abs(arm_pitch) > 15 || abs(arm_roll) > 15)    // wait until hand is roughly flat relative to arm and arm flat relative to ground
     { 
-            
-            // reset interrupt flag and get INT_STATUS byte
+    // update the IMU readings:      
+      // reset interrupt flag and get INT_STATUS byte
       mpu1Interrupt = false;
       mpu1IntStatus = imu1.getIntStatus();
   
@@ -278,9 +296,10 @@ void calibrate()
     calibCount += 1;
   }
 
-  q_calib = (q_calib_sum_horz.getProduct(0.9)).getSum(q_calib_sum_horz.getProduct(0.1));
+  // calculate rotation of hand frame to arm frame
+  q_calib = (q_calib_sum_horz.getProduct(0.9)).getSum(q_calib_sum_horz.getProduct(0.1)); // combine data obtained during the two calibrations
 
-  q_calib = q_calib.getProduct(0.00625);
+  q_calib = q_calib.getProduct(1/(vert_calibs + horz_calibs);
   q_calib.normalize();
   Serial.println("w:" + String(q_calib.w) + " x:" + String(q_calib.x) + " y:" + String(q_calib.y) + " z:" + String(q_calib.z));
   extensionAngle = angle_sum / 150;
@@ -292,9 +311,6 @@ void calibrate()
   digitalWrite(EXTERNAL_RED_LED_PIN, 0);                                  // turn off red LED cause we're happy now
   Blynk.setProperty(BLYNK_CALIB_LED_PIN, "color", "#43D35C");             // change Blynk app's calibrating indicator LED to green
   digitalWrite(EXTERNAL_GREEN_LED_PIN, 1);                                // turn on green LED
-//
-//  q_calib = q_arm.getProduct(q_hand.getConjugate());                      // calculate rotation of hand frame to arm frame
-//  q_calib.normalize();
 
   lcdPrint(0, "Calibration done!");
   lcdPrint(1, " ");
@@ -304,6 +320,13 @@ void calibrate()
   calibrating = false;
 }
 
+
+/*
+ *  updateIMUs
+ *  
+ *  Description:
+ *  - read fresh data from the IMU Fifo buffer
+ */
 void updateIMUs()
 {
     // wait for correct available data length, should be a VERY short wait

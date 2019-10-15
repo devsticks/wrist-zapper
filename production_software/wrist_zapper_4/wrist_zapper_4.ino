@@ -226,6 +226,8 @@ void setup()
     delay(2000); // let things settle 
 }
 
+// The main hardware loop
+
 void loop() {
     Blynk.run();
     fastTimer.run(); // Initiates BlynkTimer
