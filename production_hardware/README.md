@@ -2,7 +2,7 @@
 
 You can make your very own Wrist Zapper - just be careful, you can really hurt yourself with one of these. 
 
-If you want to get the cool stuff working first, follow this guide step-by-step - otherwise go for it in any order. The steps aren't very dependent on one another. If you make your own Wrist Zapper please give me a shout - I'd love to see it!
+If you want to get the cool stuff working first, follow this guide step-by-step. Otherwise go for it in any order - the steps aren't very dependent on one another. If you make your own Wrist Zapper please give me a shout - I'd love to see it!
 
 # Table of Contents
 1. [Device Electronics](#1-device-electronics)
