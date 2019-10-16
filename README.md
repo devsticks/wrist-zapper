@@ -35,6 +35,7 @@ The following is a basic system diagram showing the various elements of the desi
 | Header Connector (2 pin, female, 2.54mm, L, locking)  | XY136-02RT  | Communica | R0.31   | 2        | R0.62      |
 | Header Connector (2 pin, male 2.54mm, locking)        | XY136-02HT  | Communica | R0.55   | 2        | R1.10      |
 | Ribbon Cable (10-way, 1m)                             |             | Communica | R7.36   | 0.1      | R0.74      |
+| Neoprene (0.25m, 2mm)                                 |             | Coral     | R0.00   | 1        | R0.00      |
 | 3D Printing                                           |             |           | R120.00 | 1        | R120.00    |
 |                                                       |             |           |         |          |            |
 | Total                                                 |             |           |         |          | R1,319.40  |
