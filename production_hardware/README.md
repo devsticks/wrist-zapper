@@ -53,25 +53,34 @@ If you want to get the cool stuff working first, follow this guide step-by-step.
 
 ### Preparing the stripboard
 
-Before soldering, you will need to remove portions of the stripboard in order to build the final circuit. The easiest way to mark out your stripboard is to download a copy of [this image](https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/electronics/circuit_production_inverted_flipped.jpeg) and crop it so that the grid spacing on your screen matches that of your stripboard. The image at the link perfectly matches 2.54mm stripboard on a 9.7"-sized iPad screen. 
+Before soldering, you will need to remove portions of the stripboard in order to build the final circuit. The easiest way to mark out your stripboard is to download a copy of [this image](https://github.com/devsticks/wrist-zapper/raw/master/production_hardware/electronics/circuit_main_inverted_flipped.jpeg) and crop it so that the grid spacing on your screen matches that of your stripboard. The image at the link perfectly matches 2.54mm stripboard on a 9.7"-sized iPad screen. 
 
 Once you have the image sized up, place your stripboard over the screen (metal side up) and mark any spots with purple crosses for removal with a marker pen, as below (this is easier to see in real life than in the image...). The task is best done in a dark room with screen brightness maximised.
 
 <p align="center">
-  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_marking.jpeg alt="Circuit Marking" width="40%">
+  <img src="https://github.com/devsticks/wrist-zapper/raw/master/images/circuit_marking.JPG" alt="Circuit Marking" width="40%">
 </p>
 
 Once marked, use a small drill bit to remove the contact strip at the relevant holes. I would highly recommend checking that you've broken continuity at the marked spots - you could easily destroy some expensive components by getting this wrong, and the further you go the harder it becomes to find these errors.
 
 <p align="center">
-  <img src=https://github.com/devsticks/wrist-zapper/tree/master/images/circuit_removed.jpeg alt="Circuit Removed" width="40%">
+  <img src="https://github.com/devsticks/wrist-zapper/raw/master/images/circuit_removed.JPG" alt="Circuit Removed" width="40%">
 </p>
 
-The next step is to do a similar thing with [this image](https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/electronics/circuit_production_inverted.jpeg) to mark out the positions of joining wires. This time place the stripboard metal side down on your screen and draw lines over the red areas. 
+The next step is to do a similar thing with [this image](https://github.com/devsticks/wrist-zapper/raw/master/production_hardware/electronics/circuit_main_inverted.jpeg) to mark out the positions of joining wires. This time place the stripboard metal side down on your screen and draw lines over the red areas. 
 
 ### Soldering it up
 
-Once you've marked the wires out, neatly solder the thin comms wires into place at these spots. As far as possible, keep the wires flat - there's not much vertical room for manoeuvre here. If you'd like to make your circuit board black (it just looks so much more professional!), now is the time to do so - I used a thick marker pen.
+Once you've marked the wires out, neatly solder the thin comms wires into place where required. As far as possible, keep the wires flat - there's not much vertical room for manoeuvre here. The mess of wires connecting the microSD breakout should be connected as follows:
+
+| ESP32 | microSD Shield |
+|-------|----------------|
+|4|D8|
+|5|D5|
+|18|D7|
+|19|D6|
+
+If you'd like to make your circuit board black (it just looks so much more professional!), now is the time to do so - I used a thick marker pen.
 
 Prepare the buck and boost convertors by tuning them to give 3.3V and 200V respectively when supplied with a 12V input.
 
@@ -80,14 +89,14 @@ From this point it's just a matter of soldering things into place following the 
 Before you solder in the NCH6100HV - probably the last part you'll add - test that things are on track by connecting a 12V supply to the input jack and switching on the board. If the current spikes as you do so switch it off immediately. If not, good job! Next, test that you're getting 3.3V - and no more! - at all the places you're expecting it, and 0 at all the ground pins. If that's all looking good, continue!
 
 <p align="center">
-  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/electronics/circuit_production.jpeg" alt="Circuit Layout" width="40%">
+  <img src="https://github.com/devsticks/wrist-zapper/raw/master/production_hardware/electronics/circuit_main_layout_crop.jpg" alt="Circuit Layout" width="40%">
 </p>
 
 The finished product should look something like this:
 <p align="center">
-  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_complete_top.jpg alt="Circuit Top" width="30%">
-  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_complete_side.jpg alt="Circuit Side" width="30%">
-  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_complete_front.jpg alt="Circuit Front" width="30%">
+  <img src="https://github.com/devsticks/wrist-zapper/raw/master/images/circuit_complete_top.JPG" alt="Circuit Top" width="30%">
+  <img src="https://github.com/devsticks/wrist-zapper/raw/master/images/circuit_complete_side.JPG" alt="Circuit Side" width="30%">
+  <img src="https://github.com/devsticks/wrist-zapper/raw/master/images/circuit_complete_front.JPG" alt="Circuit Front" width="30%">
 </p>
 
 If you've made it this far give someone a high five - you're doing really well! 
