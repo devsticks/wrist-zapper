@@ -28,10 +28,10 @@ If you want to get the cool stuff working first, follow this guide step-by-step.
 | P-Channel MOSFET (400V, 3.5A)                         | FQP4P40     | Farnell   | R22.72  | 3        | R68.15     |
 | SD Card Reader (Wemos D1 Mini RTC/Data Logger Shield) |             | Communica | R82.61  | 1        | R82.61     |
 | Battery Manager (Comidox 3S, 12.6V, 10A)              |             | Amazon    | R38.95  | 1        | R38.95     |
-| Resistor (Through-hole, 25mW, 1k$\Omega$)             |             | UCT       | R0.00   | 4        | R0.00      |
-| Resistor (Through-hole, 25mW, 2.2k$\Omega$)           |             | UCT       | R0.00   | 2        | R0.00      |
-| Resistor (Through-hole, 25mW, 3.3k$\Omega$)           |             | UCT       | R0.00   | 1        | R0.00      |
-| Resistor (Through-hole, 25mW, 10k$\Omega$)            |             | UCT       | R0.00   | 1        | R0.00      |
+| Resistor (Through-hole, 25mW, 1k)                     |             | UCT       | R0.00   | 4        | R0.00      |
+| Resistor (Through-hole, 25mW, 2k2)                    |             | UCT       | R0.00   | 2        | R0.00      |
+| Resistor (Through-hole, 25mW, 3k3)                    |             | UCT       | R0.00   | 1        | R0.00      |
+| Resistor (Through-hole, 25mW, 10k)                    |             | UCT       | R0.00   | 1        | R0.00      |
 | LED (Red, 5mm, 20mA)                                  |             | UCT       | R0.00   | 1        | R0.00      |
 | LED (Green, 5mm, 20mA)                                |             | UCT       | R0.00   | 1        | R0.00      |
 | Fuse (glass, 30mA)                                    |             | UCT       | R0.00   | 1        | R0.00      |
