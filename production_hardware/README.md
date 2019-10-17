@@ -59,13 +59,12 @@ Once you have the image sized up, place your stripboard over the screen (metal s
 
 <p align="center">
   <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_marking.jpeg alt="Circuit Marking" width="40%">
-  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_marked.jpeg alt="Circuit Marked" width="40%">
 </p>
 
 Once marked, use a small drill bit to remove the contact strip at the relevant holes. I would highly recommend checking that you've broken continuity at the marked spots - you could easily destroy some expensive components by getting this wrong, and the further you go the harder it becomes to find these errors.
 
 <p align="center">
-  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_removed.jpeg alt="Circuit Removed" width="40%">
+  <img src=https://github.com/devsticks/wrist-zapper/tree/master/images/circuit_removed.jpeg alt="Circuit Removed" width="40%">
 </p>
 
 The next step is to do a similar thing with [this image](https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/electronics/circuit_production_inverted.jpeg) to mark out the positions of joining wires. This time place the stripboard metal side down on your screen and draw lines over the red areas. 
@@ -86,8 +85,9 @@ Before you solder in the NCH6100HV - probably the last part you'll add - test th
 
 The finished product should look something like this:
 <p align="center">
-  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_complete_top.jpeg alt="Circuit Top" width="40%">
-  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_complete_side.jpeg alt="Circuit Side" width="40%">
+  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_complete_top.jpg alt="Circuit Top" width="30%">
+  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_complete_side.jpg alt="Circuit Side" width="30%">
+  <img src=https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/images/circuit_complete_front.jpg alt="Circuit Front" width="30%">
 </p>
 
 If you've made it this far give someone a high five - you're doing really well! 
