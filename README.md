@@ -26,9 +26,16 @@ The following is a basic system diagram showing the various elements of the desi
 | P-Channel MOSFET (400V, 3.5A)                         | FQP4P40     | Farnell   | R22.72  | 3        | R68.15     |
 | SD Card Reader (Wemos D1 Mini RTC/Data Logger Shield) |             | Communica | R82.61  | 1        | R82.61     |
 | Battery Manager (Comidox 3S, 12.6V, 10A)              |             | Amazon    | R38.95  | 1        | R38.95     |
+| Resistor (Through-hole, 25mW, 1k)                     |             | UCT       | R0.00   | 4        | R0.00      |
+| Resistor (Through-hole, 25mW, 2k2)                    |             | UCT       | R0.00   | 2        | R0.00      |
+| Resistor (Through-hole, 25mW, 3k3)                    |             | UCT       | R0.00   | 1        | R0.00      |
+| Resistor (Through-hole, 25mW, 10k)                    |             | UCT       | R0.00   | 1        | R0.00      |
+| LED (Red, 5mm, 20mA)                                  |             | UCT       | R0.00   | 1        | R0.00      |
+| LED (Green, 5mm, 20mA)                                |             | UCT       | R0.00   | 1        | R0.00      |
+| Fuse (glass, 30mA)                                    |             | UCT       | R0.00   | 1        | R0.00      |
+| Fuse holder                                           |             | UCT       | R0.00   | 1        | R0.00      |
 | 3.7V Li-Ion Battery                                   |             | UCT       | R0.00   | 3        | R0.00      |
-| Strip Board                                           |             | UCT       | R70.00  | 1        | R70.00     |
-| On/Off Switch                                         | COM-00652   | Netram    | R15.00  | 1        | R15.00     |
+| Small On/Off Switch                                   | COM-00652   | Netram    | R15.00  | 1        | R15.00     |
 | JST Connector (1A, 2 pin, female, 14cm)               |             | Communica | R3.04   | 4        | R12.17     |
 | JST Connector (1A, 2 pin, male, 14cm)                 |             | Communica | R3.04   | 4        | R12.17     |
 | Heat Shrink (Various colours, 1/8")                   |             | Communica | R0.44   | 3        | R1.32      |
@@ -37,7 +44,8 @@ The following is a basic system diagram showing the various elements of the desi
 | Header Connector (2 pin, female, 2.54mm, L, locking)  | XY136-02RT  | Communica | R0.31   | 2        | R0.62      |
 | Header Connector (2 pin, male 2.54mm, locking)        | XY136-02HT  | Communica | R0.55   | 2        | R1.10      |
 | Ribbon Cable (10-way, 1m)                             |             | Communica | R7.36   | 0.1      | R0.74      |
-| Neoprene (0.25m, 2mm)                                 |             | Coral     | R0.00   | 1        | R0.00      |
+| Any small jumper cable (comms core will do, 1m)       |             | UCT       | R0.00   | 1        | R0.00      |
+| Strip Board (2.54mm pitch, 100x300mm)                 |             | UCT       | R70.00  | 1        | R70.00     |
 | 3D Printing                                           |             |           | R120.00 | 1        | R120.00    |
 |                                                       |             |           |         |          |            |
-| Total                                                 |             |           |         |          | R1,319.40  |
+| **Total**                                             |             |           |         |          | **R1,319.40**  |
