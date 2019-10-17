@@ -5,6 +5,8 @@ Operates on an ESP32, and communicates with a companion app built on Blynk via B
 
 ![The Wrist Zapper](https://github.com/devsticks/wrist-zapper/raw/master/images/device_top.jpg "The Wrist Zapper")
 
+If you'd like to make your own, see the build instructions [here](https://github.com/devsticks/wrist-zapper/tree/master/production_hardware/README.md).
+
 ## System Diagram
 
 The following is a basic system diagram showing the various elements of the design and how they relate to one another:
